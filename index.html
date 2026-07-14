@@ -126,6 +126,26 @@
   transform: rotate(-90deg);
 }
   /* ---------- CHEST REVIEW PANEL ---------- */
+  /* Додайте це до вашого CSS блоку */
+#chest-code {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 16px;
+  background: #1a140e;
+  color: var(--amber);
+  border: 1px solid var(--amber);
+  border-radius: 4px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Стиль для кнопки відкриття, якщо потрібно виділити */
+#chest-open-btn {
+  background: linear-gradient(180deg, #5c8f6b, #3e6a4b);
+  border: none;
+  color: white;
+  }
   #chest-panel{
     position:absolute;inset:0;z-index:90;display:none;align-items:center;justify-content:center;
     background:rgba(5,4,3,.88);
@@ -199,17 +219,19 @@
     <div class="close-hint">натисни E / Enter, щоб закрити</div>
   </div>
 
-  <div id="chest-panel">
-    <div class="panel-box">
-      <h2>🔐 Замок скрині</h2>
-      <p class="hint" id="chest-hint">Переглянь кожну улику з портфеля — можливо, в них є відповідь.</p>
-      <div id="chest-clue-list"></div>
-      <div class="panel-actions">
-        <button class="btn btn-sm" onclick="closeChestPanel()">Назад</button>
-        <button class="btn btn-sm" id="chest-open-btn" onclick="tryOpenChest()" style="display:none;">Відкрити скриню →</button>
-      </div>
+<div id="chest-panel">
+  <div class="panel-box">
+    <h2>🔐 Замок скрині</h2>
+    <p class="hint" id="chest-hint">Введіть код з улики:</p>
+    <!-- Додаємо поле вводу -->
+    <input type="number" id="chest-code" placeholder="Введіть код..." style="width:100%; padding:10px; margin-bottom:10px; background:#1a140e; color:var(--amber); border:1px solid var(--amber);">
+    <div id="chest-clue-list"></div>
+    <div class="panel-actions">
+      <button class="btn btn-sm" onclick="closeChestPanel()">Назад</button>
+      <button id="chest-open-btn" class="btn btn-sm" onclick="checkCode()">Відкрити скриню →</button>
     </div>
   </div>
+</div>
 
   <div id="cover">
     <div class="dossier">
@@ -896,6 +918,20 @@ function launchConfetti(){
 function toggleInventory() {
   const inv = document.getElementById('inventory');
   inv.classList.toggle('collapsed');
+}
+
+function checkCode() {
+  const code = document.getElementById('chest-code').value;
+  const correctCode = "1397"; // Ваш код
+
+  if (code === correctCode) {
+    closeChestPanel();
+    showFinale();
+    // Якщо маєте аудіофайл, розкоментуйте рядок нижче:
+    // new Audio('assets/congrats.mp3').play();
+  } else {
+    alert("Замок не піддався. Спробуй іншу комбінацію!");
+  }
 }
 
 window.addEventListener('resize', ()=>{
