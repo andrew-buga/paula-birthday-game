@@ -922,13 +922,12 @@ function toggleInventory() {
 
 function checkCode() {
   const code = document.getElementById('chest-code').value;
-  const correctCode = "1397"; // Ваш код
+  // Оновлений пароль
+  const correctCode = "7319313"; 
 
   if (code === correctCode) {
-    closeChestPanel();
+    closeChestPan el();
     showFinale();
-    // Якщо маєте аудіофайл, розкоментуйте рядок нижче:
-    // new Audio('assets/congrats.mp3').play();
   } else {
     alert("Замок не піддався. Спробуй іншу комбінацію!");
   }
