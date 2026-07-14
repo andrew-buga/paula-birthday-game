@@ -234,219 +234,520 @@
 
 <script>
 /* =====================================================================
-   WORLD LAYOUT
+   WORLD LAYOUT — cross-shaped mansion
+        [Hall]
+           |
+   [Library]—[Corridor]
+                  |
+               [Cellar]
    ===================================================================== */
 const ROOM_W = 720, ROOM_H = 480, WALL = 28, DOOR_W = 90;
 const roomDefs = [
-  { key:'start',   name:'Початкова кімната', worldX:780, worldY:520, floor:0x2c2417, wallTint:0x1a140e, accent:0x4a3828 },
-  { key:'next',    name:'Наступна кімната',  worldX:0,   worldY:520, floor:0x1e180f, wallTint:0x140f09, accent:0x3a2e1e },
-  { key:'street',  name:'Засніжена вулиця',  worldX:0,   worldY:0,   floor:0xe0e6ed, wallTint:0x5c6b7a, accent:0x8fa1b3 },
-  { key:'bedroom', name:'Спальня',           worldX:0,   worldY:1040,floor:0x2b1d1d, wallTint:0x1a1010, accent:0x4a2828 },
+  { key:'library',  name:'Стара бібліотека',   worldX:0,   worldY:520, floor:0x2c2417, wallTint:0x1a140e, accent:0x4a3828 },
+  { key:'corridor', name:'Прохідний коридор',  worldX:780, worldY:520, floor:0x1e180f, wallTint:0x140f09, accent:0x3a2e1e },
+  { key:'hall',     name:'Портретна зала',     worldX:780, worldY:0,   floor:0x241a12, wallTint:0x18100a, accent:0x3d2a1a },
+  { key:'cellar',   name:'Винний підвал',      worldX:780, worldY:1040,floor:0x171109, wallTint:0x0f0b06, accent:0x2a1e12 },
 ];
 const WORLD_W = 1500, WORLD_H = 1520;
 
 const doorDefs = [
-  { id:'d1', from:'start', to:'next',    side:'left',  pos:0.5, label:'Двері далі' },
-  { id:'d2', from:'next',  to:'street',  side:'top',   pos:0.5, label:'Вихід на вулицю' },
-  { id:'d3', from:'next',  to:'bedroom', side:'bottom',pos:0.5, label:'Двері у спальню' },
+  { id:'lib-cor',  from:'library',  to:'corridor', side:'right',  pos:0.5, label:'Двері в коридор' },
+  { id:'cor-hall', from:'corridor', to:'hall',     side:'top',    pos:0.5, label:'Двері в залу' },
+  { id:'cor-cel',  from:'corridor', to:'cellar',   side:'bottom', pos:0.5, label:'Двері в підвал' },
 ];
 
 function getRoom(key){ return roomDefs.find(r=>r.key===key); }
 function roomOrigin(key){ const r=getRoom(key); return {x:r.worldX, y:r.worldY}; }
 
-const objectData = [
-  { id:'env_start', room:'start', x:360, y:240, type:'dialog', label:'Конверт', icon:'hot_env', name:'Лист', text:'"Вітаю, Пауло..."' },
-  { id:'photo_wall', room:'start', x:360, y:60, type:'photo', label:'Фото', icon:'hot_photo', src:'assets/my_photo.jpg' }
+const clueData = [
+  { id:'lib1', room:'library', x:160, y:200, label:'Щоденник', icon:'📓', name:'Улика', portrait:'paula',
+    text:'Пожовклий щоденник лорда Ешворта. Остання сторінка вирвана — але видно відбиток цифри «7».' },
+  { id:'lib2', room:'library', x:560, y:340, label:'Записка', icon:'📜', name:'Улика', portrait:'paula',
+    text:'За томом «Історія роду» — записка: «Північна вежа. Північ. Число третє від кінця».' },
+  { id:'hall1', room:'hall', x:360, y:160, label:'Портрет', icon:'🖼', name:'Улика', portrait:'paula',
+    text:'Портрет лорда Ешворта трохи зсунутий. За ним — дряпанина на стіні: «1».' },
+  { id:'hall2', room:'hall', x:580, y:360, label:'Годинник', icon:'🕰', name:'Улика', portrait:'paula',
+    text:'На підлозі — розбитий кишеньковий годинник. Стрілки зупинились на числі «9».' },
+  { id:'cel1', room:'cellar', x:200, y:220, label:'Цифра на підлозі', icon:'✏️', name:'Улика', portrait:'paula',
+    text:'На пилюці підлоги хтось вивів пальцем цифру «3» — ніби поспішав.' },
+  { id:'cel2', room:'cellar', x:540, y:360, label:'Конверт', icon:'✉️', name:'Улика', portrait:'paula',
+    text:'У старій скрині для листів — конверт з датою: «13».' },
 ];
 
-let player, cursors, wasd, wallsGroup, phaserScene;
-let interactables = [], doorInteractables = [];
-let nearestInteractable = null, nearestDoor = null;
-let uiState = 'game';
-let unlockedRooms = new Set(['start']);
-let currentRoomKey = 'start';
-let fogRects = {};
+const eggData = [
+  { id:'egg1', room:'library', x:400, y:400, label:'Лист Віки', icon:'💌', name:'Віка', portrait:'vika',
+    text:'«Паула, пам\'ятаєш нашу першу спільну подорож? Ця бібліотека нагадала мені про неї. Я поруч, навіть коли мене не видно. — Віка»' },
+  { id:'egg2', room:'hall', x:140, y:380, label:'Записка Андрія', icon:'💌', name:'Андрій', portrait:'andrii',
+    text:'«Тут би точно знайшовся привід для одного з твоїх смішних коментарів. Тримайся, детективе, ти майже розкрила справу. — Андрій»' },
+  { id:'egg3', room:'corridor', x:360, y:280, label:'Спільний лист', icon:'💌', name:'Віка та Андрій', portrait:'vika',
+    text:'«Ми обидва хотіли, щоб цей день був особливим. Ще трохи — і ти зрозумієш, чому. — В. та А.»' },
+];
+
+const chestPos = { room:'cellar', x:600, y:200 };
+
+let foundClues = new Set();
+let foundEggs = new Set();
+let unlockedRooms = new Set(['library']);
+let openedDoors = new Set();
+let reviewedClues = new Set();
 
 /* =====================================================================
-   ГЕНЕРАЦІЯ ТЕКСТУР
+   INVENTORY UI
    ===================================================================== */
+function initInventory(){
+  const cluesEl = document.getElementById('inv-clues');
+  const eggsEl = document.getElementById('inv-eggs');
+  cluesEl.innerHTML = clueData.map(c =>
+    `<div class="inv-item empty" id="inv-${c.id}" data-id="${c.id}"><span class="icon">?</span><span class="label">???</span></div>`
+  ).join('');
+  eggsEl.innerHTML = eggData.map(e =>
+    `<div class="inv-item empty egg" id="inv-${e.id}" data-id="${e.id}"><span class="icon">?</span><span class="label">???</span></div>`
+  ).join('');
+  document.querySelectorAll('.inv-item').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const id = el.dataset.id;
+      if(el.classList.contains('empty')) return;
+      const clue = clueData.find(c=>c.id===id);
+      const egg = eggData.find(e=>e.id===id);
+      const item = clue || egg;
+      if(item) openDialog(item.name, item.portrait, item.text);
+    });
+  });
+}
+
+function addToInventory(item, type){
+  const el = document.getElementById('inv-'+item.id);
+  if(!el) return;
+  el.classList.remove('empty');
+  el.querySelector('.icon').textContent = item.icon;
+  el.querySelector('.label').textContent = item.label;
+  if(type==='clue') el.classList.add('clue');
+}
+
+function updateChestPanel(){
+  const list = document.getElementById('chest-clue-list');
+  const openBtn = document.getElementById('chest-open-btn');
+  const hint = document.getElementById('chest-hint');
+  list.innerHTML = clueData.map((c,i)=>{
+    const found = foundClues.has(c.id);
+    return `<button class="chest-clue-btn${found?'':' locked'}" ${found?`onclick="reviewClue('${c.id}')"`:''}>
+      <span class="num">${i+1}</span>
+      <span>${found ? c.label : '— не знайдено —'}</span>
+    </button>`;
+  }).join('');
+  const allFound = foundClues.size >= clueData.length;
+  const allReviewed = clueData.every(c=>reviewedClues.has(c.id));
+  if(allFound){
+    hint.textContent = allReviewed
+      ? 'Ти переглянула всі улики. Схоже, час відкривати скриню!'
+      : 'Клацни на кожну улику в списку, щоб перечитати її перед відкриттям.';
+    openBtn.style.display = allReviewed ? 'inline-block' : 'none';
+  } else {
+    hint.textContent = `Бракує доказів: ${foundClues.size}/${clueData.length}. Повернись до розслідування.`;
+    openBtn.style.display = 'none';
+  }
+}
+
+function reviewClue(id){
+  const c = clueData.find(x=>x.id===id);
+  if(!c || !foundClues.has(id)) return;
+  reviewedClues.add(id);
+  openDialog(c.name, c.portrait, c.text);
+  updateChestPanel();
+}
+
+function openChestPanel(){
+  chestPanelOpen = true;
+  updateChestPanel();
+  document.getElementById('chest-panel').style.display = 'flex';
+}
+function closeChestPanel(){
+  chestPanelOpen = false;
+  document.getElementById('chest-panel').style.display = 'none';
+}
+function tryOpenChest(){
+  if(foundClues.size < clueData.length) return;
+  if(!clueData.every(c=>reviewedClues.has(c.id))) return;
+  closeChestPanel();
+  showFinale();
+}
+
+/* =====================================================================
+   PHASER
+   ===================================================================== */
+let game, player, cursors, wasd;
+let interactables = [];
+let doorInteractables = [];
+let nearestInteractable = null;
+let nearestDoor = null;
+let dialogOpen = false;
+let chestPanelOpen = false;
+let currentRoomKey = 'library';
+let fogRects = {};
+let wallsGroup;
+let phaserScene;
+
+function preload(){
+  this.load.image('portrait_paula', 'assets/portraits/paula.png');
+  this.load.image('portrait_vika', 'assets/portraits/vika.png');
+  this.load.image('portrait_andrii', 'assets/portraits/andrii.png');
+}
+
 function makeTextures(scene){
   const g = scene.add.graphics();
   const s = 40;
   g.fillStyle(0x000000, 0.35); g.fillEllipse(s/2, s-6, 16, 6);
   g.fillStyle(0xead8bd, 1); g.fillRect(s/2-7, s-18, 5, 10); g.fillRect(s/2+2, s-18, 5, 10);
-  g.fillStyle(0x5c8f6b, 1); g.fillTriangle(s/2-11, s-14, s/2+11, s-14, s/2, s-24);
+  g.fillStyle(0xeef0f2, 1); g.fillTriangle(s/2-11, s-14, s/2+11, s-14, s/2, s-24);
+  g.fillStyle(0x7a2b3a, 1); g.fillRoundedRect(s/2-10, s-30, 20, 12, 3);
+  g.fillStyle(0xead8bd, 1); g.fillRoundedRect(s/2-14, s-28, 5, 10, 2); g.fillRoundedRect(s/2+9, s-28, 5, 10, 2);
+  g.fillStyle(0x241a14, 1); g.fillEllipse(s/2, s-30, 20, 16);
   g.fillStyle(0xead8bd, 1); g.fillCircle(s/2, s-32, 8);
+  g.fillStyle(0x241a14, 1); g.fillEllipse(s/2, s-37, 17, 10);
   g.generateTexture('player_tex', s, s);
   g.destroy();
 
-  const createIcon = (key, color) => {
+  [['hot_clue',0xd99a3f],['hot_egg',0xb95a8a],['hot_chest',0x5c8f6b]].forEach(([k,c])=>{
     const h = scene.add.graphics();
-    h.fillStyle(color, 0.9); h.fillCircle(16,16,8);
-    h.lineStyle(2, color, 0.5); h.strokeCircle(16,16,14);
-    h.generateTexture(key, 32, 32); h.destroy();
-  };
-  createIcon('hot_env', 0xd99a3f);
-  createIcon('hot_photo', 0x5c8f6b);
-  createIcon('hot_cam', 0x8a8378);
-  createIcon('hot_disc', 0xb95a8a);
+    h.fillStyle(c, 0.9); h.fillCircle(16,16,7);
+    h.lineStyle(2, c, 0.5); h.strokeCircle(16,16,13);
+    h.generateTexture(k, 32, 32); h.destroy();
+  });
 
+  // door closed texture
   const d = scene.add.graphics();
   d.fillStyle(0x3a2718, 1); d.fillRect(0,0,90,28);
+  d.fillStyle(0x2a1a10, 1); d.fillRect(4,4,82,20);
   d.fillStyle(0xd99a3f, 1); d.fillCircle(72,14,5);
+  d.lineStyle(2,0x1a1006,1); d.strokeRect(0,0,90,28);
   d.generateTexture('door_closed', 90, 28);
   d.destroy();
 
+  // door open texture
   const o = scene.add.graphics();
   o.fillStyle(0x1a140e, 0.6); o.fillRect(0,0,90,8);
   o.generateTexture('door_open', 90, 8);
   o.destroy();
 }
 
-function drawRoomDecor(scene, room){
-  const rx = room.worldX, ry = room.worldY;
-  if(room.key === 'street'){
-    const gfx = scene.add.graphics();
-    gfx.lineStyle(4, 0x4a3828, 0.8);
-    for(let i=0; i<4; i++){
-      gfx.beginPath();
-      gfx.moveTo(rx + 150 + i*130, ry + 50);
-      gfx.quadraticCurveTo(rx + 200 + i*130, ry + 250, rx + 100 + i*130, ry + 400);
-      gfx.strokePath();
-    }
-    gfx.fillStyle(0x6b8e23, 1);
-    for(let i=0; i<30; i++){
-      gfx.fillCircle(rx + 100 + Math.random() * 500, ry + 80 + Math.random() * 300, 6);
+function doorWorldPos(door){
+  const from = getRoom(door.from);
+  const rx = from.worldX, ry = from.worldY;
+  const gap = DOOR_W;
+  if(door.side==='right')  return { x: rx+ROOM_W-WALL/2, y: ry+ROOM_H*door.pos, w: WALL, h: gap, horiz:false };
+  if(door.side==='left')   return { x: rx+WALL/2,         y: ry+ROOM_H*door.pos, w: WALL, h: gap, horiz:false };
+  if(door.side==='top')    return { x: rx+ROOM_W*door.pos, y: ry+WALL/2,        w: gap, h: WALL, horiz:true };
+  if(door.side==='bottom') return { x: rx+ROOM_W*door.pos, y: ry+ROOM_H-WALL/2, w: gap, h: WALL, horiz:true };
+}
+
+function drawFloorPattern(scene, rx, ry, room){
+  const gfx = scene.add.graphics();
+  gfx.lineStyle(1, 0x000000, 0.12);
+  for(let gx=rx+20; gx<rx+ROOM_W-20; gx+=36){
+    for(let gy=ry+20; gy<ry+ROOM_H-20; gy+=36){
+      gfx.strokeRect(gx, gy, 34, 34);
     }
   }
-  if(room.key === 'bedroom'){
-    scene.add.rectangle(rx + 600, ry + 150, 120, 200, 0x5a3a3a).setStrokeStyle(2, 0x1a1010);
-    scene.add.rectangle(rx + 600, ry + 80, 100, 40, 0xcccccc); 
-    scene.add.rectangle(rx + 590, ry + 380, 160, 70, 0x3d2a1a);
-    scene.add.circle(rx + 550, ry + 380, 25, 0x111111);
-    scene.add.circle(rx + 550, ry + 380, 8, 0xb95a8a);
-    scene.add.line(0,0, rx+580, ry+360, rx+550, ry+380, 0xcccccc).setLineWidth(3); 
+  // rug in center
+  const rug = scene.add.ellipse(rx+ROOM_W/2, ry+ROOM_H/2, ROOM_W*0.45, ROOM_H*0.35, room.accent, 0.35);
+  rug.setStrokeStyle(2, room.accent, 0.5);
+}
+
+function drawRoomDecor(scene, room){
+  const rx = room.worldX, ry = room.worldY;
+  const ac = room.accent;
+
+  if(room.key==='library'){
+    for(let i=0;i<5;i++){
+      const bx = rx+50+i*130, by = ry+50;
+      scene.add.rectangle(bx, by, 50, 90, 0x4a3828).setStrokeStyle(1,0x1a140e);
+      scene.add.rectangle(bx, by-30, 46, 12, ac, 0.8);
+      for(let j=0;j<4;j++) scene.add.rectangle(bx-16+j*11, by-10+j*5, 8, 14, [0x7a2b2b,0x3a5a4a,0x4a3a5a,0x5a4a2a][j]);
+    }
+    scene.add.rectangle(rx+ROOM_W/2, ry+ROOM_H-60, 200, 30, 0x3a2a1a).setStrokeStyle(1,0x1a140e);
+    scene.add.text(rx+ROOM_W/2-60, ry+ROOM_H-72, 'Читальний стіл', {fontSize:'11px',color:'#8a8378'});
+  }
+
+  if(room.key==='hall'){
+    for(let i=0;i<3;i++){
+      const px = rx+120+i*220, py = ry+60;
+      scene.add.rectangle(px, py, 70, 90, 0x3d2a1a).setStrokeStyle(3,0xd99a3f,0.6);
+      scene.add.rectangle(px, py+10, 50, 60, ac, 0.5);
+    }
+    // chandelier
+    scene.add.circle(rx+ROOM_W/2, ry+40, 18, 0xd99a3f, 0.4);
+    const ch = scene.add.graphics();
+    ch.lineStyle(1, 0xf0b558, 0.5);
+    for(let a=0;a<6;a++){
+      const ang = a*Math.PI/3;
+      ch.lineBetween(rx+ROOM_W/2, ry+40, rx+ROOM_W/2+Math.cos(ang)*30, ry+40+Math.sin(ang)*20);
+    }
+    scene.add.rectangle(rx+ROOM_W/2, ry+ROOM_H-50, ROOM_W-80, 8, 0x4a3220);
+  }
+
+  if(room.key==='corridor'){
+    for(let i=0;i<6;i++){
+      scene.add.circle(rx+60+i*110, ry+40, 6, 0xf0b558, 0.7);
+      scene.add.rectangle(rx+60+i*110, ry+55, 4, 20, 0x3a2e1e);
+    }
+    scene.add.rectangle(rx+ROOM_W/2, ry+ROOM_H/2, 80, ROOM_H-100, 0x2a1e12, 0.4);
+    scene.add.ellipse(rx+ROOM_W/2, ry+ROOM_H/2, 60, 180, 0x3a2e1e, 0.3);
+  }
+
+  if(room.key==='cellar'){
+    for(let i=0;i<4;i++){
+      const bx = rx+100+i*150, by = ry+ROOM_H-80;
+      scene.add.ellipse(bx, by, 28, 36, 0x4a3220).setStrokeStyle(2,0x2a1a10);
+      scene.add.ellipse(bx, by-20, 24, 30, 0x5a3a28, 0.8);
+    }
+    for(let i=0;i<3;i++){
+      scene.add.rectangle(rx+80+i*200, ry+60, 30, ROOM_H-120, 0x2a1e12, 0.6).setStrokeStyle(1,0x1a1006);
+    }
+    // wine rack lines
+    const wg = scene.add.graphics();
+    wg.lineStyle(1, 0x3a2a1a, 0.5);
+    for(let i=0;i<3;i++){
+      const sx = rx+80+i*200;
+      for(let j=0;j<8;j++) wg.lineBetween(sx-12, ry+80+j*45, sx+12, ry+80+j*45);
+    }
   }
 }
 
-// === ІНІЦІАЛІЗАЦІЯ PHASER ===
-function create(){
-  phaserScene = this;
-  makeTextures(this);
-  this.physics.world.setBounds(0,0,WORLD_W,WORLD_H);
-  this.cameras.main.setBackgroundColor('#050403');
-  
-  // Ініціалізуємо групу для стін (Phaser сам додасть їм статичну фізику)
-  wallsGroup = this.physics.add.staticGroup();
-
+function buildWalls(scene, doorGaps){
+  wallsGroup = scene.physics.add.staticGroup();
   roomDefs.forEach(room=>{
     const rx=room.worldX, ry=room.worldY;
-    this.add.rectangle(rx+ROOM_W/2, ry+ROOM_H/2, ROOM_W, ROOM_H, room.floor).setDepth(0);
-    drawRoomDecor(this, room);
-    
-    let wTop = this.add.rectangle(rx+ROOM_W/2, ry+10, ROOM_W, 20, room.wallTint);
-    let wBot = this.add.rectangle(rx+ROOM_W/2, ry+ROOM_H-10, ROOM_W, 20, room.wallTint);
-    let wLeft = this.add.rectangle(rx+10, ry+ROOM_H/2, 20, ROOM_H, room.wallTint);
-    let wRight = this.add.rectangle(rx+ROOM_W-10, ry+ROOM_H/2, 20, ROOM_H, room.wallTint);
-    
-    // БАГ БУВ ТУТ: Просто додаємо в групу, без this.physics.add.existing
-    wallsGroup.addMultiple([wTop, wBot, wLeft, wRight]);
-    
-    let fog = this.add.rectangle(rx+ROOM_W/2, ry+ROOM_H/2, ROOM_W, ROOM_H, 0x000000, 0.95).setDepth(50);
+    const gaps = doorGaps[room.key] || {top:[],bottom:[],left:[],right:[]};
+
+    function addWallSegments(side, length, isHoriz, cx, cy){
+      const segs = [];
+      const gapList = gaps[side] || [];
+      let pos = 0;
+      const sorted = [...gapList].sort((a,b)=>a.start-b.start);
+      sorted.forEach(g=>{
+        const segLen = g.start - pos;
+        if(segLen > 4){
+          segs.push({pos: pos + segLen/2, len: segLen});
+        }
+        pos = g.end;
+      });
+      if(length - pos > 4) segs.push({pos: pos + (length-pos)/2, len: length-pos});
+
+      segs.forEach(s=>{
+        let wx, wy, ww, wh;
+        if(isHoriz){
+          ww = s.len; wh = WALL;
+          wx = cx - length/2 + s.pos;
+          wy = cy;
+        } else {
+          ww = WALL; wh = s.len;
+          wx = cx;
+          wy = cy - length/2 + s.pos;
+        }
+        const wall = scene.add.rectangle(wx, wy, ww, wh, room.wallTint);
+        scene.physics.add.existing(wall, true);
+        wallsGroup.add(wall);
+      });
+    }
+
+    addWallSegments('top',    ROOM_W, true,  rx+ROOM_W/2, ry+WALL/2);
+    addWallSegments('bottom', ROOM_W, true,  rx+ROOM_W/2, ry+ROOM_H-WALL/2);
+    addWallSegments('left',   ROOM_H, false, rx+WALL/2,   ry+ROOM_H/2);
+    addWallSegments('right',  ROOM_H, false, rx+ROOM_W-WALL/2, ry+ROOM_H/2);
+  });
+}
+
+function createFog(scene){
+  fogRects = {};
+  roomDefs.forEach(room=>{
+    const fog = scene.add.rectangle(
+      room.worldX+ROOM_W/2, room.worldY+ROOM_H/2, ROOM_W, ROOM_H, 0x050403, 0.92
+    );
+    fog.setDepth(50);
     fogRects[room.key] = fog;
     if(unlockedRooms.has(room.key)) fog.setAlpha(0);
   });
+}
 
-  doorDefs.forEach(door=>{
-    let pos = {x:0, y:0, horiz:false};
-    let rFrom = getRoom(door.from);
-    if(door.side==='left') { pos.x = rFrom.worldX; pos.y = rFrom.worldY + ROOM_H/2; pos.horiz=false; }
-    if(door.side==='top') { pos.x = rFrom.worldX + ROOM_W/2; pos.y = rFrom.worldY; pos.horiz=true; }
-    if(door.side==='bottom') { pos.x = rFrom.worldX + ROOM_W/2; pos.y = rFrom.worldY + ROOM_H; pos.horiz=true; }
+function unlockRoom(key){
+  if(unlockedRooms.has(key)) return;
+  unlockedRooms.add(key);
+  if(fogRects[key] && phaserScene){
+    phaserScene.tweens.add({ targets: fogRects[key], alpha: 0, duration: 800 });
+  }
+}
 
-    const spr = this.add.image(pos.x, pos.y, 'door_closed').setDepth(10);
-    if(!pos.horiz) spr.setAngle(90);
-    
-    let blocker = this.add.rectangle(pos.x, pos.y, pos.horiz?90:20, pos.horiz?20:90, 0xff0000, 0);
-    wallsGroup.add(blocker); // Виправлено: додаємо тільки в групу
+function openDoor(door){
+  if(openedDoors.has(door.id)) return;
+  openedDoors.add(door.id);
+  unlockRoom(door.to);
+  const di = doorInteractables.find(d=>d.data.id===door.id);
+  if(di){
+    di.blocker.destroy();
+    di.sprite.setTexture('door_open');
+    di.sprite.setAlpha(0.5);
+    di.open = true;
+  }
+  openDialog('Двері', 'paula', `Ти відчинила: ${door.label}. Кімната за дверима тепер доступна.`);
+}
 
-    let entry = { sprite:spr, blocker:blocker, data:door, wx:pos.x, wy:pos.y, open:false };
-    doorInteractables.push(entry);
-  });
-
-  objectData.forEach(obj=>{
-    const o = roomOrigin(obj.room);
-    const wx = o.x + obj.x, wy = o.y + obj.y;
-    const spr = this.add.image(wx, wy, obj.icon).setDepth(15);
-    this.tweens.add({ targets:spr, scale:{from:0.9,to:1.1}, duration:800, yoyo:true, repeat:-1 });
-    interactables.push({ sprite:spr, data:obj, wx, wy, room:obj.room });
-  });
-
-  const startRoom = getRoom('start');
-  player = this.physics.add.sprite(startRoom.worldX + ROOM_W/2, startRoom.worldY + ROOM_H/2, 'player_tex');
-  player.setDepth(20).setCollideWorldBounds(true);
-  player.body.setSize(20,20).setOffset(10,20);
-  this.physics.add.collider(player, wallsGroup);
-
-  this.cameras.main.startFollow(player, true, 0.1, 0.1);
-  cursors = this.input.keyboard.createCursorKeys();
-  
-  // НАДІЙНІ БІНДИ WASD
-  wasd = this.input.keyboard.addKeys({
-    up: Phaser.Input.Keyboard.KeyCodes.W,
-    down: Phaser.Input.Keyboard.KeyCodes.S,
-    left: Phaser.Input.Keyboard.KeyCodes.A,
-    right: Phaser.Input.Keyboard.KeyCodes.D
-  });
-
-  this.input.keyboard.on('keydown-E', ()=>{
-    if(uiState !== 'game') {
-      if(uiState === 'dialog') closeDialog();
-      if(uiState === 'media') closeMedia();
-      return;
+function getPlayerRoom(){
+  for(const room of roomDefs){
+    if(player.x >= room.worldX+WALL && player.x <= room.worldX+ROOM_W-WALL &&
+       player.y >= room.worldY+WALL && player.y <= room.worldY+ROOM_H-WALL){
+      return room.key;
     }
-    if(nearestDoor && !nearestDoor.open) { openDoor(nearestDoor); return; }
-    if(nearestInteractable) interactWith(nearestInteractable.data);
+  }
+  return currentRoomKey;
+}
+
+function create(){
+  phaserScene = this;
+  const scene = this;
+  makeTextures(scene);
+
+  scene.physics.world.setBounds(0,0,WORLD_W,WORLD_H);
+  scene.cameras.main.setBounds(0,0,WORLD_W,WORLD_H);
+  scene.cameras.main.setBackgroundColor('#050403');
+
+  // door gaps for walls
+  const doorGaps = {};
+  roomDefs.forEach(r=>{ doorGaps[r.key]={top:[],bottom:[],left:[],right:[]}; });
+  doorDefs.forEach(d=>{
+    const pos = doorWorldPos(d);
+    const gapStart = (d.side==='right'||d.side==='left') ? pos.y - DOOR_W/2 - getRoom(d.from).worldY
+      : pos.x - DOOR_W/2 - getRoom(d.from).worldX;
+    const gap = {start: gapStart, end: gapStart + DOOR_W};
+    doorGaps[d.from][d.side].push(gap);
+    const opp = {right:'left',left:'right',top:'bottom',bottom:'top'}[d.side];
+    const toRoom = getRoom(d.to);
+    let oppStart;
+    if(opp==='left'||opp==='right') oppStart = pos.y - DOOR_W/2 - toRoom.worldY;
+    else oppStart = pos.x - DOOR_W/2 - toRoom.worldX;
+    doorGaps[d.to][opp].push({start: oppStart, end: oppStart + DOOR_W});
   });
-  
-  this.input.keyboard.on('keydown-ENTER', ()=>{
-    if(uiState === 'dialog') closeDialog();
+
+  // draw rooms
+  roomDefs.forEach(room=>{
+    const rx=room.worldX, ry=room.worldY;
+    scene.add.rectangle(rx+ROOM_W/2, ry+ROOM_H/2, ROOM_W-4, ROOM_H-4, room.floor).setDepth(0);
+    drawFloorPattern(scene, rx, ry, room);
+    drawRoomDecor(scene, room);
+    const label = scene.add.text(rx+16, ry+14, room.name, {
+      fontFamily:'Cinzel', fontSize:'15px', color:'#a09080'
+    }).setDepth(5);
+    if(!unlockedRooms.has(room.key)) label.setAlpha(0);
+  });
+
+  buildWalls(scene, doorGaps);
+  createFog(scene);
+
+  // doors
+  doorInteractables = [];
+  doorDefs.forEach(door=>{
+    const pos = doorWorldPos(door);
+    const spr = scene.add.image(pos.x, pos.y, 'door_closed').setDepth(10);
+    if(pos.horiz) spr.setAngle(0); else spr.setAngle(90);
+    const blocker = scene.add.rectangle(pos.x, pos.y, pos.horiz?DOOR_W:WALL, pos.horiz?WALL:DOOR_W, 0xff0000, 0);
+    scene.physics.add.existing(blocker, true);
+    wallsGroup.add(blocker);
+    const entry = { sprite:spr, blocker, data:door, wx:pos.x, wy:pos.y, open:false };
+    doorInteractables.push(entry);
+    spr.setInteractive().on('pointerdown', ()=>tryOpenDoor(entry));
+  });
+
+  const lib = getRoom('library');
+  player = scene.physics.add.sprite(lib.worldX+ROOM_W/2, lib.worldY+ROOM_H/2, 'player_tex');
+  player.setDepth(20);
+  player.setCollideWorldBounds(true);
+  player.body.setSize(16,14).setOffset(12,20);
+  scene.physics.add.collider(player, wallsGroup);
+
+  scene.cameras.main.startFollow(player, true, 0.12, 0.12);
+  scene.cameras.main.setZoom(1);
+
+  cursors = scene.input.keyboard.createCursorKeys();
+  wasd = scene.input.keyboard.addKeys({ up:'W', down:'S', left:'A', right:'D' });
+
+  interactables = [];
+  clueData.forEach(c=>{
+    const o = roomOrigin(c.room);
+    const wx=o.x+c.x, wy=o.y+c.y;
+    const spr = scene.add.image(wx, wy, 'hot_clue').setDepth(15).setInteractive();
+    scene.tweens.add({ targets:spr, scale:{from:0.85,to:1.2}, duration:900, yoyo:true, repeat:-1 });
+    interactables.push({sprite:spr, data:c, type:'clue', wx, wy, room:c.room});
+    spr.on('pointerdown', ()=>tryInteractWith(interactables.find(x=>x.data.id===c.id)));
+  });
+  eggData.forEach(e=>{
+    const o = roomOrigin(e.room);
+    const wx=o.x+e.x, wy=o.y+e.y;
+    const spr = scene.add.image(wx, wy, 'hot_egg').setDepth(15).setInteractive();
+    scene.tweens.add({ targets:spr, alpha:{from:0.5,to:1}, duration:1200, yoyo:true, repeat:-1 });
+    interactables.push({sprite:spr, data:e, type:'egg', wx, wy, room:e.room});
+    spr.on('pointerdown', ()=>tryInteractWith(interactables.find(x=>x.data.id===e.id)));
+  });
+  {
+    const o = roomOrigin(chestPos.room);
+    const wx=o.x+chestPos.x, wy=o.y+chestPos.y;
+    const spr = scene.add.image(wx, wy, 'hot_chest').setDepth(15).setInteractive().setScale(1.6);
+    const chestData = { name:'Скриня', text:'' };
+    interactables.push({sprite:spr, data:chestData, type:'chest', wx, wy, room:chestPos.room});
+    spr.on('pointerdown', ()=>tryInteractWith(interactables.find(x=>x.type==='chest')));
+  }
+
+  scene.input.keyboard.on('keydown-E', ()=>{
+    if(chestPanelOpen) return;
+    if(dialogOpen){ closeDialog(); return; }
+    if(nearestDoor && !nearestDoor.open) { tryOpenDoor(nearestDoor); return; }
+    if(nearestInteractable) tryInteractWith(nearestInteractable);
+  });
+  scene.input.keyboard.on('keydown-ENTER', ()=>{
+    if(chestPanelOpen) return;
+    if(dialogOpen) closeDialog();
+  });
+  scene.input.keyboard.on('keydown-ESC', ()=>{
+    if(chestPanelOpen) closeChestPanel();
   });
 }
 
+function tryOpenDoor(entry){
+  if(dialogOpen || chestPanelOpen) return;
+  if(entry.open) return;
+  openDoor(entry.data);
+}
+
 function update(){
-  if(uiState !== 'game'){ player.setVelocity(0); return; }
-  
-  const speed = 200;
+  if(dialogOpen || chestPanelOpen){ player.setVelocity(0); return; }
+  const speed = 180;
   let vx=0, vy=0;
   if(cursors.left.isDown || wasd.left.isDown) vx=-1;
   else if(cursors.right.isDown || wasd.right.isDown) vx=1;
   if(cursors.up.isDown || wasd.up.isDown) vy=-1;
   else if(cursors.down.isDown || wasd.down.isDown) vy=1;
-  
   const len = Math.hypot(vx,vy)||1;
   player.setVelocity((vx/len)*speed, (vy/len)*speed);
 
-  for(const room of roomDefs){
-    if(player.x >= room.worldX && player.x <= room.worldX+ROOM_W &&
-       player.y >= room.worldY && player.y <= room.worldY+ROOM_H){
-      if(currentRoomKey !== room.key){
-        currentRoomKey = room.key;
-        document.getElementById('room-name').textContent = room.name;
-      }
-      break;
-    }
+  const rk = getPlayerRoom();
+  if(rk !== currentRoomKey){
+    currentRoomKey = rk;
+    document.getElementById('room-name').textContent = getRoom(rk).name;
   }
 
-  let nearest = null, nearestDist = 60;
+  // hide interactables in locked rooms
   interactables.forEach(it=>{
-    if(!unlockedRooms.has(it.room)) return;
+    const visible = unlockedRooms.has(it.room);
+    it.sprite.setVisible(visible && !isConsumed(it));
+  });
+
+  let nearest = null, nearestDist = 65;
+  interactables.forEach(it=>{
+    if(!unlockedRooms.has(it.room) || isConsumed(it)) return;
     const d = Phaser.Math.Distance.Between(player.x, player.y, it.wx, it.wy);
     if(d < nearestDist){ nearestDist = d; nearest = it; }
   });
   nearestInteractable = nearest;
 
-  let nearDoor = null, doorDist = 60;
+  let nearDoor = null, doorDist = 55;
   doorInteractables.forEach(d=>{
     if(d.open) return;
     const dd = Phaser.Math.Distance.Between(player.x, player.y, d.wx, d.wy);
@@ -458,71 +759,121 @@ function update(){
   const target = nearDoor || nearest;
   if(target){
     const cam = this.cameras.main;
-    const screenX = (target.wx - cam.scrollX) * cam.zoom;
-    const screenY = (target.wy - cam.scrollY) * cam.zoom;
+    const tx = nearDoor ? nearDoor.wx : nearest.wx;
+    const ty = nearDoor ? nearDoor.wy : nearest.wy;
+    const screenX = (tx - cam.scrollX) * cam.zoom;
+    const screenY = (ty - cam.scrollY) * cam.zoom;
     prompt.style.display='block';
     prompt.style.left = screenX+'px';
-    prompt.style.top = (screenY-35)+'px';
-    prompt.textContent = 'E';
+    prompt.style.top = (screenY-28)+'px';
+    prompt.textContent = nearDoor ? 'E — відчинити' : 'E';
   } else {
     prompt.style.display='none';
   }
 }
 
-function openDoor(doorEntry){
-  doorEntry.open = true;
-  doorEntry.blocker.destroy();
-  doorEntry.sprite.setTexture('door_open');
-  unlockedRooms.add(doorEntry.data.to);
-  phaserScene.tweens.add({ targets: fogRects[doorEntry.data.to], alpha: 0, duration: 800 });
+function isConsumed(it){
+  if(it.type==='clue') return foundClues.has(it.data.id);
+  if(it.type==='egg') return foundEggs.has(it.data.id);
+  return false;
 }
 
-function interactWith(data){
-  if(data.type === 'dialog'){
-    document.getElementById('dialog-name').textContent = data.name;
-    document.getElementById('dialog-text').innerHTML = data.text;
-    document.getElementById('dialog').style.display='block';
-    uiState = 'dialog';
-  } 
-  else {
-    const container = document.getElementById('media-container');
-    container.innerHTML = ''; 
-    if(data.type === 'photo'){
-      container.innerHTML = `<img src="${data.src}" alt="Фото">`;
-    } else if(data.type === 'video'){
-      container.innerHTML = `<video src="${data.src}" controls autoplay></video>`;
-    } else if(data.type === 'audio'){
-      container.innerHTML = `
-        <div class="audio-panel">
-          <h3>${data.name}</h3>
-          <audio src="${data.src}" controls autoplay></audio>
-        </div>`;
+function tryInteractWith(it){
+  if(!it || dialogOpen || chestPanelOpen) return;
+  if(it.type==='chest'){
+    openChestPanel();
+    return;
+  }
+  const d = it.data;
+  if(it.type==='clue'){
+    if(foundClues.has(d.id)){
+      openDialog(d.name, d.portrait, d.text);
+      return;
     }
-    document.getElementById('media-modal').style.display = 'flex';
-    uiState = 'media';
+    foundClues.add(d.id);
+    document.getElementById('clue-count').textContent = foundClues.size;
+    addToInventory(d, 'clue');
+    it.sprite.setVisible(false);
+    openDialog(d.name, d.portrait, `📁 Додано в портфель: «${d.label}»\n\n${d.text}`);
+  }
+  if(it.type==='egg'){
+    if(foundEggs.has(d.id)){
+      openDialog(d.name, d.portrait, d.text);
+      return;
+    }
+    foundEggs.add(d.id);
+    document.getElementById('egg-count').textContent = foundEggs.size;
+    addToInventory(d, 'egg');
+    it.sprite.setVisible(false);
+    openDialog(d.name, d.portrait, d.text);
   }
 }
 
-function closeDialog(){
-  document.getElementById('dialog').style.display='none';
-  uiState = 'game';
+function openDialog(name, portraitKey, text){
+  dialogOpen = true;
+  document.getElementById('dialog-name').textContent = name;
+  document.getElementById('dialog-text').innerHTML = text.replace(/\n/g,'<br>');
+  document.getElementById('dialog-portrait').src = `assets/portraits/${portraitKey}.png`;
+  document.getElementById('dialog').style.display='block';
 }
-
-function closeMedia(){
-  document.getElementById('media-container').innerHTML = ''; 
-  document.getElementById('media-modal').style.display='none';
-  uiState = 'game';
+function closeDialog(){
+  dialogOpen = false;
+  document.getElementById('dialog').style.display='none';
 }
 
 const config = {
-  type: Phaser.AUTO, parent: 'phaser-container',
+  type: Phaser.AUTO,
+  parent: 'phaser-container',
   backgroundColor: '#050403',
   scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
-  physics: { default:'arcade', arcade:{ gravity:{y:0} } },
-  scene: { create, update }
+  physics: { default:'arcade', arcade:{ gravity:{y:0}, debug:false } },
+  scene: { preload, create, update }
 };
 
-new Phaser.Game(config);
+function startGame(){
+  document.getElementById('cover').style.display='none';
+  initInventory();
+  game = new Phaser.Game(config);
+}
+
+function showFinale(){
+  document.getElementById('finale').style.display='flex';
+}
+function openChest(){
+  const lid = document.getElementById('lid');
+  lid.style.transition = 'transform .6s ease';
+  lid.style.transform = 'rotate(-70deg) translate(-14px,-10px)';
+  document.getElementById('finale-pre').style.display='none';
+  document.getElementById('finale-post').style.display='block';
+  launchConfetti();
+}
+function launchConfetti(){
+  const canvas = document.getElementById('confetti');
+  const ctx = canvas.getContext('2d');
+  canvas.width = innerWidth; canvas.height = innerHeight;
+  const colors = ['#d99a3f','#f0b558','#e9dcbd','#7a2b2b','#8a8378'];
+  let pieces = Array.from({length:150}, ()=>({
+    x: Math.random()*canvas.width, y: -20 - Math.random()*canvas.height*0.5,
+    r: 4+Math.random()*5, c: colors[Math.floor(Math.random()*colors.length)],
+    vy: 2+Math.random()*3, vx: -1+Math.random()*2, rot: Math.random()*360, vr: -6+Math.random()*12
+  }));
+  let frames = 0;
+  function tick(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.c; ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6); ctx.restore();
+    });
+    frames++;
+    if(frames<260) requestAnimationFrame(tick); else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  tick();
+}
+window.addEventListener('resize', ()=>{
+  const c = document.getElementById('confetti');
+  c.width = innerWidth; c.height = innerHeight;
+});
 </script>
 </body>
 </html>
