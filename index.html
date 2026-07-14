@@ -2,287 +2,212 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Справа №13: Зникнення в маєтку Ешворт</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Справа №13: Таємниця маєтку Ешворт</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Special+Elite&family=Press+Start+2P&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
 <style>
   :root{
-    --ink:#14110f;
-    --ink-2:#1d1812;
-    --parchment:#e9dcbd;
-    --parchment-dim:#c9b98f;
-    --amber:#d99a3f;
-    --amber-glow:#f0b558;
-    --wax:#7a2b2b;
-    --fog:#453a63;
-    --ash:#8a8378;
-    --ok:#4a7c59;
+    --ink:#0e0b08; --amber:#d99a3f; --amber-glow:#f0b558;
+    --parchment:#e9dcbd; --wax:#7a2b2b; --fog:#453a63; --ash:#8a8378; --ok:#5c8f6b;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;height:100%;background:var(--ink);overflow:hidden;font-family:'Special Elite',monospace;}
-  #app{position:relative;width:100%;height:100vh;overflow:hidden;background:radial-gradient(ellipse at center, #1f1a14 0%, #0a0806 100%);}
+  html,body{margin:0;padding:0;background:#000;height:100%;overflow:hidden;font-family:'Special Elite',monospace;}
+  #game-wrap{position:relative;width:100vw;height:100vh;}
+  #phaser-container{width:100%;height:100%;}
+  canvas{image-rendering:pixelated;display:block;}
 
-  /* film grain / vignette overlay */
-  .vignette{position:absolute;inset:0;pointer-events:none;z-index:50;
-    box-shadow: inset 0 0 220px 80px rgba(0,0,0,0.85);
-    background: radial-gradient(circle at 50% 40%, transparent 40%, rgba(0,0,0,0.35) 100%);
+  #cover{
+    position:absolute;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at center,#1f1a14 0%,#050403 100%);
   }
-  .grain{position:absolute;inset:0;pointer-events:none;z-index:51;opacity:.05;mix-blend-mode:overlay;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
-
-  .scene{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
-  .scene.active{display:flex;}
-
-  h1,h2,h3{font-family:'Cinzel',serif;color:var(--amber-glow);text-shadow:0 0 18px rgba(217,154,63,0.35);margin:0 0 10px;letter-spacing:1px;}
-  p,li{color:var(--parchment);line-height:1.55;}
-  .badge{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--ink);background:var(--amber);padding:6px 10px;border-radius:2px;letter-spacing:1px;display:inline-block;}
-
-  /* ---------- COVER / DOSSIER ---------- */
   .dossier{
-    width:min(560px,92vw);
+    width:min(560px,92vw);max-height:88vh;overflow:auto;
     background:linear-gradient(180deg,#2a2118,#1a140e);
-    border:2px solid var(--amber);
-    border-radius:4px;
-    padding:34px 30px;
-    box-shadow:0 0 0 6px #0a0806, 0 20px 60px rgba(0,0,0,.7), 0 0 60px rgba(217,154,63,.08);
-    position:relative;
+    border:2px solid var(--amber);border-radius:4px;padding:30px 28px;
+    box-shadow:0 0 0 6px #0a0806,0 20px 60px rgba(0,0,0,.7);
   }
-  .dossier::before{content:"";position:absolute;top:14px;right:14px;width:70px;height:70px;border-radius:50%;
-    background:radial-gradient(circle at 35% 35%, var(--wax), #4a1414 70%);
-    box-shadow:0 3px 8px rgba(0,0,0,.6);
-    display:flex;}
-  .dossier .seal-txt{position:absolute;top:38px;right:32px;font-family:'Cinzel',serif;font-size:22px;color:#e8c9c9;z-index:2;}
   .stamp{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--wax);border:2px solid var(--wax);
-    display:inline-block;padding:5px 8px;transform:rotate(-6deg);letter-spacing:1px;margin-bottom:14px;}
+    display:inline-block;padding:5px 8px;transform:rotate(-6deg);letter-spacing:1px;margin-bottom:12px;}
+  h1,h2,h3{font-family:'Cinzel',serif;color:var(--amber-glow);text-shadow:0 0 18px rgba(217,154,63,.35);margin:0 0 10px;}
+  p{color:var(--parchment);line-height:1.55;font-size:14px;}
   .btn{
     font-family:'Cinzel',serif;font-weight:700;font-size:15px;letter-spacing:1px;
-    background:linear-gradient(180deg,var(--amber-glow),var(--amber));
-    color:#241a0a;border:none;padding:12px 26px;border-radius:3px;cursor:pointer;
-    box-shadow:0 4px 0 #8a6122, 0 6px 14px rgba(0,0,0,.5);
-    transition:transform .08s ease;
+    background:linear-gradient(180deg,var(--amber-glow),var(--amber));color:#241a0a;border:none;
+    padding:12px 26px;border-radius:3px;cursor:pointer;box-shadow:0 4px 0 #8a6122,0 6px 14px rgba(0,0,0,.5);
   }
-  .btn:hover{filter:brightness(1.08);}
   .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #8a6122;}
-  .btn.secondary{background:linear-gradient(180deg,#3a352c,#241f18);color:var(--parchment);box-shadow:0 4px 0 #100d09;}
+  .btn-sm{padding:8px 16px;font-size:12px;}
+  .crew{display:flex;gap:14px;justify-content:center;margin:16px 0;flex-wrap:wrap;}
+  .crew img{width:80px;border-radius:6px;border:2px solid var(--amber-glow);object-fit:cover;object-position:top;height:100px;}
+  .crew div{text-align:center;}
+  .crew b{display:block;font-family:'Cinzel',serif;color:var(--parchment);font-size:12px;margin-top:4px;}
 
-  .crew{display:flex;gap:18px;justify-content:center;margin:18px 0 22px;flex-wrap:wrap;}
-  .crew-card{width:120px;text-align:center;}
-  .sprite{
-    width:96px;height:110px;margin:0 auto 6px;border-radius:6px;position:relative;overflow:hidden;
-    border:2px solid var(--amber-glow);box-shadow:0 0 16px rgba(217,154,63,.25);
-    background:#20190f;
-    display:flex;align-items:flex-end;justify-content:center;
+  #hud{
+    position:absolute;top:10px;left:10px;z-index:60;
+    background:rgba(14,11,8,.85);border:1px solid var(--amber);border-radius:4px;padding:8px 12px;
+    font-family:'Press Start 2P',monospace;font-size:9px;color:var(--parchment);line-height:1.9;
   }
-  /* placeholder pixel bust, swap for <img> once photos exist */
-  .sprite .bust{width:70px;height:70px;border-radius:50%;background:var(--placeholder,#5a4a35);
-    display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;
-    color:var(--amber-glow);font-size:20px;margin-bottom:10px;border:2px solid rgba(240,181,88,.5);}
-  .crew-card small{color:var(--ash);font-family:'Press Start 2P',monospace;font-size:8px;display:block;margin-top:4px;letter-spacing:.5px;}
-  .crew-card b{color:var(--parchment);font-family:'Cinzel',serif;font-size:14px;}
-
-  /* ---------- SCENE (investigation room) ---------- */
-  .room-wrap{width:min(920px,96vw);}
-  .room-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px;flex-wrap:wrap;gap:8px;}
-  .room{
-    position:relative;width:100%;aspect-ratio:16/9;border-radius:6px;overflow:hidden;
-    border:3px solid #2a2015;box-shadow:0 20px 50px rgba(0,0,0,.6), inset 0 0 90px rgba(0,0,0,.55);
-    background-size:cover;background-position:center;
-    cursor:crosshair;
+  #hud .room-name{color:var(--amber-glow);font-family:'Cinzel',serif;font-size:14px;margin-bottom:4px;}
+  #controls-hint{
+    position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:60;
+    background:rgba(14,11,8,.8);border:1px solid var(--amber);border-radius:4px;padding:6px 14px;
+    font-size:11px;color:var(--ash);white-space:nowrap;
   }
-  .room-fog{position:absolute;inset:0;background:radial-gradient(circle at 30% 20%, rgba(69,58,99,.35), transparent 55%),
-    radial-gradient(circle at 80% 80%, rgba(69,58,99,.25), transparent 50%);pointer-events:none;}
 
-  .hotspot{
-    position:absolute;width:46px;height:46px;border-radius:50%;
-    background:radial-gradient(circle, rgba(217,154,63,.55), rgba(217,154,63,0) 70%);
-    animation:pulse 2.4s infinite ease-in-out;cursor:pointer;
+  /* ---------- INVENTORY ---------- */
+  #inventory{
+    position:absolute;top:10px;right:10px;z-index:65;
+    width:min(220px,28vw);
+    background:linear-gradient(180deg,rgba(36,29,21,.95),rgba(22,16,9,.95));
+    border:2px solid var(--amber);border-radius:6px;padding:10px 12px;
+    box-shadow:0 8px 24px rgba(0,0,0,.5);
   }
-  .hotspot.found{animation:none;background:none;}
-  @keyframes pulse{0%,100%{transform:scale(.85);opacity:.55;}50%{transform:scale(1.15);opacity:1;}}
-
-  .clue-log{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;min-height:34px;}
-  .clue-chip{
-    font-family:'Press Start 2P',monospace;font-size:9px;color:var(--parchment);
-    background:#241f18;border:1px solid var(--amber);padding:6px 8px;border-radius:3px;opacity:.35;
+  #inventory h4{
+    margin:0 0 8px;font-family:'Cinzel',serif;color:var(--amber-glow);font-size:13px;
+    border-bottom:1px solid rgba(217,154,63,.3);padding-bottom:6px;
   }
-  .clue-chip.on{opacity:1;color:var(--amber-glow);box-shadow:0 0 10px rgba(217,154,63,.3);}
-
-  .toast{
-    position:absolute;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);
-    background:#1a1510;border:1px solid var(--amber);color:var(--parchment);padding:12px 18px;border-radius:4px;
-    max-width:80%;font-size:13px;opacity:0;transition:all .35s ease;pointer-events:none;z-index:20;
+  #inventory .inv-section{margin-bottom:10px;}
+  #inventory .inv-label{font-size:9px;color:var(--ash);margin-bottom:4px;font-family:'Press Start 2P',monospace;}
+  #inv-clues,#inv-eggs{display:flex;flex-direction:column;gap:4px;}
+  .inv-item{
+    display:flex;align-items:center;gap:8px;padding:6px 8px;
+    background:rgba(14,11,8,.6);border:1px solid rgba(217,154,63,.25);border-radius:4px;
+    cursor:pointer;transition:background .15s,border-color .15s;font-size:12px;color:var(--parchment);
   }
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .inv-item:hover{background:rgba(217,154,63,.15);border-color:var(--amber);}
+  .inv-item.empty{color:var(--ash);cursor:default;opacity:.5;}
+  .inv-item.empty:hover{background:rgba(14,11,8,.6);border-color:rgba(217,154,63,.25);}
+  .inv-item .icon{width:22px;height:22px;border-radius:3px;display:flex;align-items:center;justify-content:center;
+    font-size:11px;flex-shrink:0;background:rgba(217,154,63,.2);border:1px solid var(--amber);}
+  .inv-item.egg .icon{background:rgba(185,90,138,.2);border-color:#b95a8a;}
+  .inv-item .label{flex:1;line-height:1.3;}
 
-  .progress-note{color:var(--ash);font-size:12px;margin-top:8px;}
-
-  /* ---------- PUZZLE (cipher lock) ---------- */
-  .lock-wrap{width:min(480px,92vw);text-align:center;}
-  .dial-row{display:flex;justify-content:center;gap:10px;margin:20px 0;}
-  .dial{width:56px;height:70px;background:#1a140e;border:2px solid var(--amber);border-radius:4px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;}
-  .dial-num{font-family:'Cinzel',serif;font-size:26px;color:var(--amber-glow);}
-  .dial-btns{display:flex;flex-direction:column;}
-  .dial-btns button{background:none;border:none;color:var(--parchment);cursor:pointer;font-size:12px;padding:0;}
-
-  /* ---------- FINALE ---------- */
-  .chest{width:220px;margin:0 auto 20px;position:relative;cursor:pointer;}
-  .chest svg{width:100%;filter:drop-shadow(0 10px 20px rgba(0,0,0,.6));}
-  .msg-card{
-    width:min(600px,94vw);background:linear-gradient(180deg,#2a2118,#1a140e);
-    border:2px solid var(--amber);border-radius:6px;padding:34px 30px;text-align:center;
-    box-shadow:0 0 60px rgba(217,154,63,.25);
+  #interact-prompt{
+    position:absolute;z-index:55;transform:translate(-50%,-100%);
+    background:var(--amber);color:#241a0a;font-family:'Press Start 2P',monospace;font-size:9px;
+    padding:5px 8px;border-radius:3px;display:none;white-space:nowrap;pointer-events:none;
   }
-  .msg-card h1{font-size:clamp(22px,4vw,34px);}  
-  .msg-card p{font-size:15px;}
+  #interact-prompt::after{content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
+    border:6px solid transparent;border-top-color:var(--amber);}
 
-  #confetti{position:fixed;inset:0;pointer-events:none;z-index:100;}
-
-  ::selection{background:var(--amber);color:#1a140e;}
-  .hint{font-size:12px;color:var(--ash);margin-top:6px;}
-  @media(max-width:640px){
-    .crew{gap:10px;}
-    .crew-card{width:90px;}
+  #dialog{
+    position:absolute;left:50%;bottom:24px;transform:translateX(-50%);z-index:80;
+    width:min(680px,92vw);background:linear-gradient(180deg,#241d15,#161009);
+    border:2px solid var(--amber);border-radius:6px;padding:16px 18px;display:none;
+    box-shadow:0 12px 30px rgba(0,0,0,.6);
   }
+  #dialog .inner{display:flex;gap:14px;align-items:flex-start;}
+  #dialog img{width:66px;height:80px;object-fit:cover;object-position:top;border-radius:4px;border:2px solid var(--amber-glow);flex-shrink:0;}
+  #dialog .txt b{color:var(--amber-glow);font-family:'Cinzel',serif;font-size:14px;display:block;margin-bottom:4px;}
+  #dialog .txt p{margin:0;font-size:13px;color:var(--parchment);}
+  #dialog .close-hint{margin-top:10px;text-align:right;font-size:10px;color:var(--ash);}
+
+  /* ---------- CHEST REVIEW PANEL ---------- */
+  #chest-panel{
+    position:absolute;inset:0;z-index:90;display:none;align-items:center;justify-content:center;
+    background:rgba(5,4,3,.88);
+  }
+  #chest-panel .panel-box{
+    width:min(520px,92vw);background:linear-gradient(180deg,#2a2118,#1a140e);
+    border:2px solid var(--amber);border-radius:6px;padding:24px;
+    box-shadow:0 0 0 6px #0a0806,0 20px 50px rgba(0,0,0,.7);
+  }
+  #chest-panel h2{font-family:'Cinzel',serif;color:var(--amber-glow);margin:0 0 8px;font-size:18px;}
+  #chest-panel .hint{color:var(--ash);font-size:12px;margin-bottom:16px;}
+  #chest-clue-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+  .chest-clue-btn{
+    display:flex;align-items:center;gap:10px;padding:10px 12px;text-align:left;
+    background:rgba(14,11,8,.7);border:1px solid rgba(217,154,63,.3);border-radius:4px;
+    color:var(--parchment);cursor:pointer;font-family:'Special Elite',monospace;font-size:13px;
+    transition:background .15s;
+  }
+  .chest-clue-btn:hover{background:rgba(217,154,63,.12);}
+  .chest-clue-btn.locked{opacity:.4;cursor:default;}
+  .chest-clue-btn.locked:hover{background:rgba(14,11,8,.7);}
+  .chest-clue-btn .num{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--amber);width:24px;}
+  .panel-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
+
+  #finale{
+    position:absolute;inset:0;z-index:150;display:none;align-items:center;justify-content:center;
+    background:rgba(5,4,3,.92);
+  }
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:160;}
+  .chest-box{width:210px;margin:0 auto 16px;cursor:pointer;}
+  .chest-box svg{width:100%;filter:drop-shadow(0 10px 20px rgba(0,0,0,.6));}
+  #finale .msg-card{text-align:center;}
+  #finale h1{font-size:clamp(20px,4vw,30px);}
 </style>
 </head>
 <body>
-<div id="app">
-  <div class="grain"></div>
-  <div class="vignette"></div>
+<div id="game-wrap">
+  <div id="phaser-container"></div>
 
-  <!-- ================= SCENE 0: COVER LETTER ================= -->
-  <section class="scene active" id="scene-cover">
+  <div id="hud">
+    <div class="room-name" id="room-name">Стара бібліотека</div>
+    <div>🔎 Улики: <span id="clue-count">0</span> / 6</div>
+    <div>💌 Спогади: <span id="egg-count">0</span> / 3</div>
+  </div>
+
+  <div id="inventory">
+    <h4>📁 Портфель детектива</h4>
+    <div class="inv-section">
+      <div class="inv-label">УЛИКИ</div>
+      <div id="inv-clues"></div>
+    </div>
+    <div class="inv-section">
+      <div class="inv-label">СПОГАДИ</div>
+      <div id="inv-eggs"></div>
+    </div>
+  </div>
+
+  <div id="controls-hint">Рух — WASD / стрілки · Взаємодія — E · Портфель — клік по уликах</div>
+  <div id="interact-prompt">E</div>
+
+  <div id="dialog">
+    <div class="inner">
+      <img id="dialog-portrait" src="" alt="">
+      <div class="txt">
+        <b id="dialog-name"></b>
+        <p id="dialog-text"></p>
+      </div>
+    </div>
+    <div class="close-hint">натисни E / Enter, щоб закрити</div>
+  </div>
+
+  <div id="chest-panel">
+    <div class="panel-box">
+      <h2>🔐 Замок скрині</h2>
+      <p class="hint" id="chest-hint">Переглянь кожну улику з портфеля — можливо, в них є відповідь.</p>
+      <div id="chest-clue-list"></div>
+      <div class="panel-actions">
+        <button class="btn btn-sm" onclick="closeChestPanel()">Назад</button>
+        <button class="btn btn-sm" id="chest-open-btn" onclick="tryOpenChest()" style="display:none;">Відкрити скриню →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="cover">
     <div class="dossier">
-      <div class="seal-txt">Е</div>
       <div class="stamp">ЦІЛКОМ ТАЄМНО</div>
-      <h3 style="color:var(--parchment-dim);font-family:'Special Elite'">Детективна агенція «Ешворт і Ко»</h3>
+      <h3 style="color:#c9b98f;font-family:'Special Elite'">Детективна агенція «Ешворт і Ко»</h3>
       <h1>Справа №13:<br>Таємниця маєтку Ешворт</h1>
       <p><b>Паула</b>, тобі надійшов лист. Хтось довіряє тобі непросту справу — і сьогодні саме той день, коли варто прийняти виклик.</p>
-      <p>Разом із <b>Вікою</b> та <b>Андрієм</b> ви — приватні детективи. Обстежте три локації старого маєтку, зберіть усі улики, розкрийте шифр і відкрийте те, що заховане в скрині.</p>
-      <p class="hint">Клацай на світні плями в кімнатах — там ховаються докази. Знайди все, щоб рухатись далі.</p>
-      <button class="btn" onclick="goTo('scene-crew')">Відкрити справу →</button>
-    </div>
-  </section>
-
-  <!-- ================= SCENE 1: THE TEAM ================= -->
-  <section class="scene" id="scene-crew">
-    <div class="dossier" style="width:min(640px,92vw)">
-      <div class="stamp">КОМАНДА</div>
-      <h1>Троє детективів</h1>
       <div class="crew">
-        <div class="crew-card">
-          <div class="sprite" style="--placeholder:#7a3b3b"><img id="img-paula" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;"><div class="bust">П</div></div>
-          <b>Паула</b><small>Іменинниця</small>
-        </div>
-        <div class="crew-card">
-          <div class="sprite" style="--placeholder:#3b5a7a"><img id="img-vika" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;"><div class="bust">В</div></div>
-          <b>Віка</b><small>Найкраща подруга</small>
-        </div>
-        <div class="crew-card">
-          <div class="sprite" style="--placeholder:#4a5a3b"><img id="img-andrii" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;"><div class="bust">А</div></div>
-          <b>Андрій</b><small>Найкращий друг</small>
-        </div>
+        <div><img src="assets/portraits/paula.png"><b>Паула</b></div>
+        <div><img src="assets/portraits/vika.png"><b>Віка</b></div>
+        <div><img src="assets/portraits/andrii.png"><b>Андрій</b></div>
       </div>
-      <p>Маєток Ешворт стоїть занедбаним уже 40 років. Останній власник, лорд Ешворт, зник безслідно в ніч свого ювілею — а разом з ним і сімейна реліквія. Кажуть, у маєтку досі блукає його тінь.</p>
-      <p>Ваше завдання: пройти бібліотеку, портретну залу та підвал, знайти шість прихованих доказів і розгадати код старої скрині.</p>
-      <button class="btn" onclick="goTo('scene-library')">Увійти до маєтку →</button>
+      <p>Досліди маєток: відкривай двері, збирай улики в портфель і знайди три приховані спогади. Коли всі докази зібрані — розгадай загадку скрині в підвалі.</p>
+      <p style="color:var(--ash);font-size:12px;">WASD — рух · E — взаємодія · Улики зберігаються в портфелі справа — клікни, щоб перечитати.</p>
+      <button class="btn" onclick="startGame()">Почати розслідування →</button>
     </div>
-  </section>
+  </div>
 
-  <!-- ================= SCENE 2: LIBRARY ================= -->
-  <section class="scene" id="scene-library">
-    <div class="room-wrap">
-      <div class="room-header">
-        <div><span class="badge">ЛОКАЦІЯ 1 / 3</span><h2 style="margin-top:6px;">Стара бібліотека</h2></div>
-        <div class="progress-note" id="lib-progress">Знайдено доказів: 0 / 2</div>
-      </div>
-      <div class="room" id="room-library" style="background:
-          radial-gradient(circle at 20% 15%, #3a2f22 0%, transparent 45%),
-          repeating-linear-gradient(90deg, #241d15 0 40px, #2c241a 40px 80px),
-          linear-gradient(180deg,#171009,#0c0805 80%);">
-        <div class="room-fog"></div>
-        <div class="hotspot" data-clue="lib1" style="top:28%;left:18%;" onclick="findClue('lib1', this, 'Пожовклий щоденник лорда Ешворта. Остання сторінка вирвана — але видно відбиток цифри: <b>7</b>.')"></div>
-        <div class="hotspot" data-clue="lib2" style="top:60%;left:72%;" onclick="findClue('lib2', this, 'За томом «Історія роду» — записка: «Північна вежа. Північ. Число третє від кінця».')"></div>
-      </div>
-      <div class="clue-log" id="lib-log">
-        <div class="clue-chip" data-c="lib1">Щоденник</div>
-        <div class="clue-chip" data-c="lib2">Записка</div>
-      </div>
-      <div style="text-align:center;margin-top:16px;">
-        <button class="btn" id="lib-next" disabled onclick="goTo('scene-hall')">До портретної зали →</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= SCENE 3: PORTRAIT HALL ================= -->
-  <section class="scene" id="scene-hall">
-    <div class="room-wrap">
-      <div class="room-header">
-        <div><span class="badge">ЛОКАЦІЯ 2 / 3</span><h2 style="margin-top:6px;">Портретна зала</h2></div>
-        <div class="progress-note" id="hall-progress">Знайдено доказів: 0 / 2</div>
-      </div>
-      <div class="room" id="room-hall" style="background:
-          radial-gradient(ellipse at 50% 0%, #2d2418 0%, transparent 60%),
-          repeating-linear-gradient(0deg, #1a140e 0 60px, #221a12 60px 62px),
-          linear-gradient(180deg,#14100b,#0a0705 85%);">
-        <div class="room-fog"></div>
-        <div class="hotspot" data-clue="hall1" style="top:24%;left:40%;" onclick="findClue('hall1', this, 'Портрет лорда Ешворта трохи зсунутий. За ним — дряпанина на стіні: <b>1</b>.')"></div>
-        <div class="hotspot" data-clue="hall2" style="top:66%;left:15%;" onclick="findClue('hall2', this, 'На підлозі — розбитий кишеньковий годинник, стрілки зупинились на числі <b>9</b>.')"></div>
-      </div>
-      <div class="clue-log" id="hall-log">
-        <div class="clue-chip" data-c="hall1">Дряпина</div>
-        <div class="clue-chip" data-c="hall2">Годинник</div>
-      </div>
-      <div style="text-align:center;margin-top:16px;">
-        <button class="btn" id="hall-next" disabled onclick="goTo('scene-cellar')">До підвалу →</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= SCENE 4: CELLAR ================= -->
-  <section class="scene" id="scene-cellar">
-    <div class="room-wrap">
-      <div class="room-header">
-        <div><span class="badge">ЛОКАЦІЯ 3 / 3</span><h2 style="margin-top:6px;">Винний підвал</h2></div>
-        <div class="progress-note" id="cellar-progress">Знайдено доказів: 0 / 2</div>
-      </div>
-      <div class="room" id="room-cellar" style="background:
-          radial-gradient(circle at 70% 30%, #241c14 0%, transparent 50%),
-          repeating-radial-gradient(circle at 50% 100%, #1c1610 0 3px, #171109 3px 6px),
-          linear-gradient(180deg,#100c08,#060404 85%);">
-        <div class="room-fog"></div>
-        <div class="hotspot" data-clue="cel1" style="top:35%;left:60%;" onclick="findClue('cel1', this, 'На пилюці підлоги хтось вивів пальцем цифру <b>3</b> — ніби поспішав.')"></div>
-        <div class="hotspot" data-clue="cel2" style="top:70%;left:30%;" onclick="findClue('cel2', this, 'У старій скрині для листів — конверт з датою народження: <b>13</b>.')"></div>
-      </div>
-      <div class="clue-log" id="cellar-log">
-        <div class="clue-chip" data-c="cel1">Слід у пилюці</div>
-        <div class="clue-chip" data-c="cel2">Конверт</div>
-      </div>
-      <div style="text-align:center;margin-top:16px;">
-        <button class="btn" id="cellar-next" disabled onclick="goTo('scene-lock')">До фінальної скрині →</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= SCENE 5: THE LOCK ================= -->
-  <section class="scene" id="scene-lock">
-    <div class="lock-wrap dossier">
-      <div class="stamp">ОСТАННЯ ЗАГАДКА</div>
-      <h1>Шифр старої скрині</h1>
-      <p>Зберіть усі шість доказів докупи. Щоденник, записка, дряпина, годинник, слід, конверт — кожен ховає цифру. Розташуйте їх у порядку, який підказала записка з бібліотеки: <i>«число третє від кінця»</i> має стояти третім з кінця коду.</p>
-      <div class="dial-row" id="dials"></div>
-      <button class="btn" onclick="checkCode()">Відкрити скриню</button>
-      <p class="hint" id="lock-hint">Підказка: усі шість цифр, знайдені вами, використовуються по одному разу.</p>
-    </div>
-  </section>
-
-  <!-- ================= SCENE 6: FINALE ================= -->
-  <section class="scene" id="scene-finale">
+  <div id="finale">
     <div class="msg-card">
-      <div class="chest" id="chest-el" onclick="openChest()">
+      <div class="chest-box" id="chest-el" onclick="openChest()">
         <svg viewBox="0 0 200 150" id="chest-svg">
           <rect x="20" y="70" width="160" height="70" rx="6" fill="#3a2718" stroke="#1a1006" stroke-width="4"/>
           <rect x="20" y="70" width="160" height="12" fill="#241708"/>
@@ -295,116 +220,625 @@
         </svg>
       </div>
       <div id="finale-pre">
-        <h2>Код прийнято. Замок клацнув.</h2>
-        <p class="hint">Клацни на скриню, щоб відкрити її.</p>
+        <h2 style="color:var(--amber-glow);font-family:'Cinzel',serif;">Всі докази зібрано. Замок піддався.</h2>
+        <p style="color:var(--ash);">Клацни на скриню, щоб відкрити її.</p>
       </div>
       <div id="finale-post" style="display:none;">
         <h1>З Днем Народження, Паула! 🎉</h1>
-        <p>Справу розкрито — і виявилось, що весь цей маєток, всі улики й весь морок існували лише для того, щоб привести тебе сюди. Ти найкраща подруга, яку тільки можна побажати, і ми — Віка та Андрій — раді, що можемо бути поруч у твій день. Хай цей рік принесе тобі стільки ж світла, скільки ти даруєш нам. Із любов'ю, твоя детективна команда. ❤️</p>
-        <p class="hint">P.S. — тепер офіційно: справу закрито, торт відкрито.</p>
+        <p style="max-width:560px;">Справу розкрито — і виявилось, що весь цей маєток, усі улики й весь морок існували лише для того, щоб привести тебе сюди. Ти найкраща подруга, яку тільки можна побажати, і ми — Віка та Андрій — раді, що можемо бути поруч у твій день. Хай цей рік принесе тобі стільки ж світла, скільки ти даруєш нам.<br><br>Із любов'ю, твоя детективна команда. ❤️</p>
       </div>
     </div>
-  </section>
+  </div>
 </div>
 <canvas id="confetti"></canvas>
 
 <script>
-/* ============ NAVIGATION ============ */
-function goTo(id){
-  document.querySelectorAll('.scene').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  if(id==='scene-lock') buildDials();
-}
+/* =====================================================================
+   WORLD LAYOUT — cross-shaped mansion
+        [Hall]
+           |
+   [Library]—[Corridor]
+                  |
+               [Cellar]
+   ===================================================================== */
+const ROOM_W = 720, ROOM_H = 480, WALL = 28, DOOR_W = 90;
+const roomDefs = [
+  { key:'library',  name:'Стара бібліотека',   worldX:0,   worldY:520, floor:0x2c2417, wallTint:0x1a140e, accent:0x4a3828 },
+  { key:'corridor', name:'Прохідний коридор',  worldX:780, worldY:520, floor:0x1e180f, wallTint:0x140f09, accent:0x3a2e1e },
+  { key:'hall',     name:'Портретна зала',     worldX:780, worldY:0,   floor:0x241a12, wallTint:0x18100a, accent:0x3d2a1a },
+  { key:'cellar',   name:'Винний підвал',      worldX:780, worldY:1040,floor:0x171109, wallTint:0x0f0b06, accent:0x2a1e12 },
+];
+const WORLD_W = 1500, WORLD_H = 1520;
 
-/* ============ CLUES ============ */
-const clueDigits = { lib1:'7', lib2:null, hall1:'1', hall2:'9', cel1:'3', cel2:'13' };
-// lib2 is a text hint, not a digit itself — kept separate
-const foundClues = new Set();
-const roomProgress = {
-  library:{ ids:['lib1','lib2'], progEl:'lib-progress', nextBtn:'lib-next' },
-  hall:{ ids:['hall1','hall2'], progEl:'hall-progress', nextBtn:'hall-next' },
-  cellar:{ ids:['cel1','cel2'], progEl:'cellar-progress', nextBtn:'cellar-next' },
-};
+const doorDefs = [
+  { id:'lib-cor',  from:'library',  to:'corridor', side:'right',  pos:0.5, label:'Двері в коридор' },
+  { id:'cor-hall', from:'corridor', to:'hall',     side:'top',    pos:0.5, label:'Двері в залу' },
+  { id:'cor-cel',  from:'corridor', to:'cellar',   side:'bottom', pos:0.5, label:'Двері в підвал' },
+];
 
-let toastTimer;
-function showToast(html){
-  let t = document.querySelector('.toast');
-  if(!t){
-    t = document.createElement('div');
-    t.className='toast';
-    document.querySelector('.scene.active').appendChild(t);
-  } else {
-    t.remove();
-    t = document.createElement('div');
-    t.className='toast';
-    document.querySelector('.scene.active').appendChild(t);
-  }
-  t.innerHTML = html;
-  requestAnimationFrame(()=>t.classList.add('show'));
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.classList.remove('show'), 4200);
-}
+function getRoom(key){ return roomDefs.find(r=>r.key===key); }
+function roomOrigin(key){ const r=getRoom(key); return {x:r.worldX, y:r.worldY}; }
 
-function findClue(id, el, text){
-  if(foundClues.has(id)) { showToast(text); return; }
-  foundClues.add(id);
-  el.classList.add('found');
-  const chip = document.querySelector(`.clue-chip[data-c="${id}"]`);
-  if(chip) chip.classList.add('on');
-  showToast('🔎 <b>Знайдено доказ.</b><br>'+text);
-  updateRoomProgress();
-}
+const clueData = [
+  { id:'lib1', room:'library', x:160, y:200, label:'Щоденник', icon:'📓', name:'Улика', portrait:'paula',
+    text:'Пожовклий щоденник лорда Ешворта. Остання сторінка вирвана — але видно відбиток цифри «7».' },
+  { id:'lib2', room:'library', x:560, y:340, label:'Записка', icon:'📜', name:'Улика', portrait:'paula',
+    text:'За томом «Історія роду» — записка: «Північна вежа. Північ. Число третє від кінця».' },
+  { id:'hall1', room:'hall', x:360, y:160, label:'Портрет', icon:'🖼', name:'Улика', portrait:'paula',
+    text:'Портрет лорда Ешворта трохи зсунутий. За ним — дряпанина на стіні: «1».' },
+  { id:'hall2', room:'hall', x:580, y:360, label:'Годинник', icon:'🕰', name:'Улика', portrait:'paula',
+    text:'На підлозі — розбитий кишеньковий годинник. Стрілки зупинились на числі «9».' },
+  { id:'cel1', room:'cellar', x:200, y:220, label:'Цифра на підлозі', icon:'✏️', name:'Улика', portrait:'paula',
+    text:'На пилюці підлоги хтось вивів пальцем цифру «3» — ніби поспішав.' },
+  { id:'cel2', room:'cellar', x:540, y:360, label:'Конверт', icon:'✉️', name:'Улика', portrait:'paula',
+    text:'У старій скрині для листів — конверт з датою: «13».' },
+];
 
-function updateRoomProgress(){
-  Object.values(roomProgress).forEach(r=>{
-    const found = r.ids.filter(i=>foundClues.has(i)).length;
-    const el = document.getElementById(r.progEl);
-    if(el) el.textContent = `Знайдено доказів: ${found} / ${r.ids.length}`;
-    const btn = document.getElementById(r.nextBtn);
-    if(btn) btn.disabled = found < r.ids.length;
+const eggData = [
+  { id:'egg1', room:'library', x:400, y:400, label:'Лист Віки', icon:'💌', name:'Віка', portrait:'vika',
+    text:'«Паула, пам\'ятаєш нашу першу спільну подорож? Ця бібліотека нагадала мені про неї. Я поруч, навіть коли мене не видно. — Віка»' },
+  { id:'egg2', room:'hall', x:140, y:380, label:'Записка Андрія', icon:'💌', name:'Андрій', portrait:'andrii',
+    text:'«Тут би точно знайшовся привід для одного з твоїх смішних коментарів. Тримайся, детективе, ти майже розкрила справу. — Андрій»' },
+  { id:'egg3', room:'corridor', x:360, y:280, label:'Спільний лист', icon:'💌', name:'Віка та Андрій', portrait:'vika',
+    text:'«Ми обидва хотіли, щоб цей день був особливим. Ще трохи — і ти зрозумієш, чому. — В. та А.»' },
+];
+
+const chestPos = { room:'cellar', x:600, y:200 };
+
+let foundClues = new Set();
+let foundEggs = new Set();
+let unlockedRooms = new Set(['library']);
+let openedDoors = new Set();
+let reviewedClues = new Set();
+
+/* =====================================================================
+   INVENTORY UI
+   ===================================================================== */
+function initInventory(){
+  const cluesEl = document.getElementById('inv-clues');
+  const eggsEl = document.getElementById('inv-eggs');
+  cluesEl.innerHTML = clueData.map(c =>
+    `<div class="inv-item empty" id="inv-${c.id}" data-id="${c.id}"><span class="icon">?</span><span class="label">???</span></div>`
+  ).join('');
+  eggsEl.innerHTML = eggData.map(e =>
+    `<div class="inv-item empty egg" id="inv-${e.id}" data-id="${e.id}"><span class="icon">?</span><span class="label">???</span></div>`
+  ).join('');
+  document.querySelectorAll('.inv-item').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const id = el.dataset.id;
+      if(el.classList.contains('empty')) return;
+      const clue = clueData.find(c=>c.id===id);
+      const egg = eggData.find(e=>e.id===id);
+      const item = clue || egg;
+      if(item) openDialog(item.name, item.portrait, item.text);
+    });
   });
 }
 
-/* ============ LOCK PUZZLE ============ */
-/* Simple deterministic 6-digit code derived from clues. */
-const CODE = ['7','1','9','3','1','3'];
-let dialValues = [0,0,0,0,0,0];
+function addToInventory(item, type){
+  const el = document.getElementById('inv-'+item.id);
+  if(!el) return;
+  el.classList.remove('empty');
+  el.querySelector('.icon').textContent = item.icon;
+  el.querySelector('.label').textContent = item.label;
+  if(type==='clue') el.classList.add('clue');
+}
 
-function buildDials(){
-  const wrap = document.getElementById('dials');
-  wrap.innerHTML = '';
-  dialValues = [0,0,0,0,0,0];
-  for(let i=0;i<6;i++){
-    const d = document.createElement('div');
-    d.className='dial';
-    d.innerHTML = `
-      <div class="dial-num" id="dialnum-${i}">0</div>
-      <div class="dial-btns">
-        <button onclick="bump(${i},1)">▲</button>
-        <button onclick="bump(${i},-1)">▼</button>
-      </div>`;
-    wrap.appendChild(d);
-  }
-}
-function bump(i,dir){
-  dialValues[i] = (dialValues[i] + dir + 10) % 10;
-  document.getElementById('dialnum-'+i).textContent = dialValues[i];
-}
-function checkCode(){
-  const guess = dialValues.map(String);
-  const ok = guess.every((v,i)=>v===CODE[i]);
-  const hint = document.getElementById('lock-hint');
-  if(ok){
-    hint.textContent = 'Замок піддався...';
-    hint.style.color = 'var(--ok)';
-    setTimeout(()=>goTo('scene-finale'), 900);
+function updateChestPanel(){
+  const list = document.getElementById('chest-clue-list');
+  const openBtn = document.getElementById('chest-open-btn');
+  const hint = document.getElementById('chest-hint');
+  list.innerHTML = clueData.map((c,i)=>{
+    const found = foundClues.has(c.id);
+    return `<button class="chest-clue-btn${found?'':' locked'}" ${found?`onclick="reviewClue('${c.id}')"`:''}>
+      <span class="num">${i+1}</span>
+      <span>${found ? c.label : '— не знайдено —'}</span>
+    </button>`;
+  }).join('');
+  const allFound = foundClues.size >= clueData.length;
+  const allReviewed = clueData.every(c=>reviewedClues.has(c.id));
+  if(allFound){
+    hint.textContent = allReviewed
+      ? 'Ти переглянула всі улики. Схоже, час відкривати скриню!'
+      : 'Клацни на кожну улику в списку, щоб перечитати її перед відкриттям.';
+    openBtn.style.display = allReviewed ? 'inline-block' : 'none';
   } else {
-    hint.textContent = 'Клац... нічого. Перевір докази ще раз і спробуй іншу послідовність.';
-    hint.style.color = 'var(--wax)';
+    hint.textContent = `Бракує доказів: ${foundClues.size}/${clueData.length}. Повернись до розслідування.`;
+    openBtn.style.display = 'none';
   }
 }
 
-/* ============ CHEST OPEN + CONFETTI ============ */
+function reviewClue(id){
+  const c = clueData.find(x=>x.id===id);
+  if(!c || !foundClues.has(id)) return;
+  reviewedClues.add(id);
+  openDialog(c.name, c.portrait, c.text);
+  updateChestPanel();
+}
+
+function openChestPanel(){
+  chestPanelOpen = true;
+  updateChestPanel();
+  document.getElementById('chest-panel').style.display = 'flex';
+}
+function closeChestPanel(){
+  chestPanelOpen = false;
+  document.getElementById('chest-panel').style.display = 'none';
+}
+function tryOpenChest(){
+  if(foundClues.size < clueData.length) return;
+  if(!clueData.every(c=>reviewedClues.has(c.id))) return;
+  closeChestPanel();
+  showFinale();
+}
+
+/* =====================================================================
+   PHASER
+   ===================================================================== */
+let game, player, cursors, wasd;
+let interactables = [];
+let doorInteractables = [];
+let nearestInteractable = null;
+let nearestDoor = null;
+let dialogOpen = false;
+let chestPanelOpen = false;
+let currentRoomKey = 'library';
+let fogRects = {};
+let wallsGroup;
+let phaserScene;
+
+function preload(){
+  this.load.image('portrait_paula', 'assets/portraits/paula.png');
+  this.load.image('portrait_vika', 'assets/portraits/vika.png');
+  this.load.image('portrait_andrii', 'assets/portraits/andrii.png');
+}
+
+function makeTextures(scene){
+  const g = scene.add.graphics();
+  const s = 40;
+  g.fillStyle(0x000000, 0.35); g.fillEllipse(s/2, s-6, 16, 6);
+  g.fillStyle(0xead8bd, 1); g.fillRect(s/2-7, s-18, 5, 10); g.fillRect(s/2+2, s-18, 5, 10);
+  g.fillStyle(0xeef0f2, 1); g.fillTriangle(s/2-11, s-14, s/2+11, s-14, s/2, s-24);
+  g.fillStyle(0x7a2b3a, 1); g.fillRoundedRect(s/2-10, s-30, 20, 12, 3);
+  g.fillStyle(0xead8bd, 1); g.fillRoundedRect(s/2-14, s-28, 5, 10, 2); g.fillRoundedRect(s/2+9, s-28, 5, 10, 2);
+  g.fillStyle(0x241a14, 1); g.fillEllipse(s/2, s-30, 20, 16);
+  g.fillStyle(0xead8bd, 1); g.fillCircle(s/2, s-32, 8);
+  g.fillStyle(0x241a14, 1); g.fillEllipse(s/2, s-37, 17, 10);
+  g.generateTexture('player_tex', s, s);
+  g.destroy();
+
+  [['hot_clue',0xd99a3f],['hot_egg',0xb95a8a],['hot_chest',0x5c8f6b]].forEach(([k,c])=>{
+    const h = scene.add.graphics();
+    h.fillStyle(c, 0.9); h.fillCircle(16,16,7);
+    h.lineStyle(2, c, 0.5); h.strokeCircle(16,16,13);
+    h.generateTexture(k, 32, 32); h.destroy();
+  });
+
+  // door closed texture
+  const d = scene.add.graphics();
+  d.fillStyle(0x3a2718, 1); d.fillRect(0,0,90,28);
+  d.fillStyle(0x2a1a10, 1); d.fillRect(4,4,82,20);
+  d.fillStyle(0xd99a3f, 1); d.fillCircle(72,14,5);
+  d.lineStyle(2,0x1a1006,1); d.strokeRect(0,0,90,28);
+  d.generateTexture('door_closed', 90, 28);
+  d.destroy();
+
+  // door open texture
+  const o = scene.add.graphics();
+  o.fillStyle(0x1a140e, 0.6); o.fillRect(0,0,90,8);
+  o.generateTexture('door_open', 90, 8);
+  o.destroy();
+}
+
+function doorWorldPos(door){
+  const from = getRoom(door.from);
+  const rx = from.worldX, ry = from.worldY;
+  const gap = DOOR_W;
+  if(door.side==='right')  return { x: rx+ROOM_W-WALL/2, y: ry+ROOM_H*door.pos, w: WALL, h: gap, horiz:false };
+  if(door.side==='left')   return { x: rx+WALL/2,         y: ry+ROOM_H*door.pos, w: WALL, h: gap, horiz:false };
+  if(door.side==='top')    return { x: rx+ROOM_W*door.pos, y: ry+WALL/2,        w: gap, h: WALL, horiz:true };
+  if(door.side==='bottom') return { x: rx+ROOM_W*door.pos, y: ry+ROOM_H-WALL/2, w: gap, h: WALL, horiz:true };
+}
+
+function drawFloorPattern(scene, rx, ry, room){
+  const gfx = scene.add.graphics();
+  gfx.lineStyle(1, 0x000000, 0.12);
+  for(let gx=rx+20; gx<rx+ROOM_W-20; gx+=36){
+    for(let gy=ry+20; gy<ry+ROOM_H-20; gy+=36){
+      gfx.strokeRect(gx, gy, 34, 34);
+    }
+  }
+  // rug in center
+  const rug = scene.add.ellipse(rx+ROOM_W/2, ry+ROOM_H/2, ROOM_W*0.45, ROOM_H*0.35, room.accent, 0.35);
+  rug.setStrokeStyle(2, room.accent, 0.5);
+}
+
+function drawRoomDecor(scene, room){
+  const rx = room.worldX, ry = room.worldY;
+  const ac = room.accent;
+
+  if(room.key==='library'){
+    for(let i=0;i<5;i++){
+      const bx = rx+50+i*130, by = ry+50;
+      scene.add.rectangle(bx, by, 50, 90, 0x4a3828).setStrokeStyle(1,0x1a140e);
+      scene.add.rectangle(bx, by-30, 46, 12, ac, 0.8);
+      for(let j=0;j<4;j++) scene.add.rectangle(bx-16+j*11, by-10+j*5, 8, 14, [0x7a2b2b,0x3a5a4a,0x4a3a5a,0x5a4a2a][j]);
+    }
+    scene.add.rectangle(rx+ROOM_W/2, ry+ROOM_H-60, 200, 30, 0x3a2a1a).setStrokeStyle(1,0x1a140e);
+    scene.add.text(rx+ROOM_W/2-60, ry+ROOM_H-72, 'Читальний стіл', {fontSize:'11px',color:'#8a8378'});
+  }
+
+  if(room.key==='hall'){
+    for(let i=0;i<3;i++){
+      const px = rx+120+i*220, py = ry+60;
+      scene.add.rectangle(px, py, 70, 90, 0x3d2a1a).setStrokeStyle(3,0xd99a3f,0.6);
+      scene.add.rectangle(px, py+10, 50, 60, ac, 0.5);
+    }
+    // chandelier
+    scene.add.circle(rx+ROOM_W/2, ry+40, 18, 0xd99a3f, 0.4);
+    const ch = scene.add.graphics();
+    ch.lineStyle(1, 0xf0b558, 0.5);
+    for(let a=0;a<6;a++){
+      const ang = a*Math.PI/3;
+      ch.lineBetween(rx+ROOM_W/2, ry+40, rx+ROOM_W/2+Math.cos(ang)*30, ry+40+Math.sin(ang)*20);
+    }
+    scene.add.rectangle(rx+ROOM_W/2, ry+ROOM_H-50, ROOM_W-80, 8, 0x4a3220);
+  }
+
+  if(room.key==='corridor'){
+    for(let i=0;i<6;i++){
+      scene.add.circle(rx+60+i*110, ry+40, 6, 0xf0b558, 0.7);
+      scene.add.rectangle(rx+60+i*110, ry+55, 4, 20, 0x3a2e1e);
+    }
+    scene.add.rectangle(rx+ROOM_W/2, ry+ROOM_H/2, 80, ROOM_H-100, 0x2a1e12, 0.4);
+    scene.add.ellipse(rx+ROOM_W/2, ry+ROOM_H/2, 60, 180, 0x3a2e1e, 0.3);
+  }
+
+  if(room.key==='cellar'){
+    for(let i=0;i<4;i++){
+      const bx = rx+100+i*150, by = ry+ROOM_H-80;
+      scene.add.ellipse(bx, by, 28, 36, 0x4a3220).setStrokeStyle(2,0x2a1a10);
+      scene.add.ellipse(bx, by-20, 24, 30, 0x5a3a28, 0.8);
+    }
+    for(let i=0;i<3;i++){
+      scene.add.rectangle(rx+80+i*200, ry+60, 30, ROOM_H-120, 0x2a1e12, 0.6).setStrokeStyle(1,0x1a1006);
+    }
+    // wine rack lines
+    const wg = scene.add.graphics();
+    wg.lineStyle(1, 0x3a2a1a, 0.5);
+    for(let i=0;i<3;i++){
+      const sx = rx+80+i*200;
+      for(let j=0;j<8;j++) wg.lineBetween(sx-12, ry+80+j*45, sx+12, ry+80+j*45);
+    }
+  }
+}
+
+function buildWalls(scene, doorGaps){
+  wallsGroup = scene.physics.add.staticGroup();
+  roomDefs.forEach(room=>{
+    const rx=room.worldX, ry=room.worldY;
+    const gaps = doorGaps[room.key] || {top:[],bottom:[],left:[],right:[]};
+
+    function addWallSegments(side, length, isHoriz, cx, cy){
+      const segs = [];
+      const gapList = gaps[side] || [];
+      let pos = 0;
+      const sorted = [...gapList].sort((a,b)=>a.start-b.start);
+      sorted.forEach(g=>{
+        const segLen = g.start - pos;
+        if(segLen > 4){
+          segs.push({pos: pos + segLen/2, len: segLen});
+        }
+        pos = g.end;
+      });
+      if(length - pos > 4) segs.push({pos: pos + (length-pos)/2, len: length-pos});
+
+      segs.forEach(s=>{
+        let wx, wy, ww, wh;
+        if(isHoriz){
+          ww = s.len; wh = WALL;
+          wx = cx - length/2 + s.pos;
+          wy = cy;
+        } else {
+          ww = WALL; wh = s.len;
+          wx = cx;
+          wy = cy - length/2 + s.pos;
+        }
+        const wall = scene.add.rectangle(wx, wy, ww, wh, room.wallTint);
+        scene.physics.add.existing(wall, true);
+        wallsGroup.add(wall);
+      });
+    }
+
+    addWallSegments('top',    ROOM_W, true,  rx+ROOM_W/2, ry+WALL/2);
+    addWallSegments('bottom', ROOM_W, true,  rx+ROOM_W/2, ry+ROOM_H-WALL/2);
+    addWallSegments('left',   ROOM_H, false, rx+WALL/2,   ry+ROOM_H/2);
+    addWallSegments('right',  ROOM_H, false, rx+ROOM_W-WALL/2, ry+ROOM_H/2);
+  });
+}
+
+function createFog(scene){
+  fogRects = {};
+  roomDefs.forEach(room=>{
+    const fog = scene.add.rectangle(
+      room.worldX+ROOM_W/2, room.worldY+ROOM_H/2, ROOM_W, ROOM_H, 0x050403, 0.92
+    );
+    fog.setDepth(50);
+    fogRects[room.key] = fog;
+    if(unlockedRooms.has(room.key)) fog.setAlpha(0);
+  });
+}
+
+function unlockRoom(key){
+  if(unlockedRooms.has(key)) return;
+  unlockedRooms.add(key);
+  if(fogRects[key] && phaserScene){
+    phaserScene.tweens.add({ targets: fogRects[key], alpha: 0, duration: 800 });
+  }
+}
+
+function openDoor(door){
+  if(openedDoors.has(door.id)) return;
+  openedDoors.add(door.id);
+  unlockRoom(door.to);
+  const di = doorInteractables.find(d=>d.data.id===door.id);
+  if(di){
+    di.blocker.destroy();
+    di.sprite.setTexture('door_open');
+    di.sprite.setAlpha(0.5);
+    di.open = true;
+  }
+  openDialog('Двері', 'paula', `Ти відчинила: ${door.label}. Кімната за дверима тепер доступна.`);
+}
+
+function getPlayerRoom(){
+  for(const room of roomDefs){
+    if(player.x >= room.worldX+WALL && player.x <= room.worldX+ROOM_W-WALL &&
+       player.y >= room.worldY+WALL && player.y <= room.worldY+ROOM_H-WALL){
+      return room.key;
+    }
+  }
+  return currentRoomKey;
+}
+
+function create(){
+  phaserScene = this;
+  const scene = this;
+  makeTextures(scene);
+
+  scene.physics.world.setBounds(0,0,WORLD_W,WORLD_H);
+  scene.cameras.main.setBounds(0,0,WORLD_W,WORLD_H);
+  scene.cameras.main.setBackgroundColor('#050403');
+
+  // door gaps for walls
+  const doorGaps = {};
+  roomDefs.forEach(r=>{ doorGaps[r.key]={top:[],bottom:[],left:[],right:[]}; });
+  doorDefs.forEach(d=>{
+    const pos = doorWorldPos(d);
+    const gapStart = (d.side==='right'||d.side==='left') ? pos.y - DOOR_W/2 - getRoom(d.from).worldY
+      : pos.x - DOOR_W/2 - getRoom(d.from).worldX;
+    const gap = {start: gapStart, end: gapStart + DOOR_W};
+    doorGaps[d.from][d.side].push(gap);
+    const opp = {right:'left',left:'right',top:'bottom',bottom:'top'}[d.side];
+    const toRoom = getRoom(d.to);
+    let oppStart;
+    if(opp==='left'||opp==='right') oppStart = pos.y - DOOR_W/2 - toRoom.worldY;
+    else oppStart = pos.x - DOOR_W/2 - toRoom.worldX;
+    doorGaps[d.to][opp].push({start: oppStart, end: oppStart + DOOR_W});
+  });
+
+  // draw rooms
+  roomDefs.forEach(room=>{
+    const rx=room.worldX, ry=room.worldY;
+    scene.add.rectangle(rx+ROOM_W/2, ry+ROOM_H/2, ROOM_W-4, ROOM_H-4, room.floor).setDepth(0);
+    drawFloorPattern(scene, rx, ry, room);
+    drawRoomDecor(scene, room);
+    const label = scene.add.text(rx+16, ry+14, room.name, {
+      fontFamily:'Cinzel', fontSize:'15px', color:'#a09080'
+    }).setDepth(5);
+    if(!unlockedRooms.has(room.key)) label.setAlpha(0);
+  });
+
+  buildWalls(scene, doorGaps);
+  createFog(scene);
+
+  // doors
+  doorInteractables = [];
+  doorDefs.forEach(door=>{
+    const pos = doorWorldPos(door);
+    const spr = scene.add.image(pos.x, pos.y, 'door_closed').setDepth(10);
+    if(pos.horiz) spr.setAngle(0); else spr.setAngle(90);
+    const blocker = scene.add.rectangle(pos.x, pos.y, pos.horiz?DOOR_W:WALL, pos.horiz?WALL:DOOR_W, 0xff0000, 0);
+    scene.physics.add.existing(blocker, true);
+    wallsGroup.add(blocker);
+    const entry = { sprite:spr, blocker, data:door, wx:pos.x, wy:pos.y, open:false };
+    doorInteractables.push(entry);
+    spr.setInteractive().on('pointerdown', ()=>tryOpenDoor(entry));
+  });
+
+  const lib = getRoom('library');
+  player = scene.physics.add.sprite(lib.worldX+ROOM_W/2, lib.worldY+ROOM_H/2, 'player_tex');
+  player.setDepth(20);
+  player.setCollideWorldBounds(true);
+  player.body.setSize(16,14).setOffset(12,20);
+  scene.physics.add.collider(player, wallsGroup);
+
+  scene.cameras.main.startFollow(player, true, 0.12, 0.12);
+  scene.cameras.main.setZoom(1);
+
+  cursors = scene.input.keyboard.createCursorKeys();
+  wasd = scene.input.keyboard.addKeys({ up:'W', down:'S', left:'A', right:'D' });
+
+  interactables = [];
+  clueData.forEach(c=>{
+    const o = roomOrigin(c.room);
+    const wx=o.x+c.x, wy=o.y+c.y;
+    const spr = scene.add.image(wx, wy, 'hot_clue').setDepth(15).setInteractive();
+    scene.tweens.add({ targets:spr, scale:{from:0.85,to:1.2}, duration:900, yoyo:true, repeat:-1 });
+    interactables.push({sprite:spr, data:c, type:'clue', wx, wy, room:c.room});
+    spr.on('pointerdown', ()=>tryInteractWith(interactables.find(x=>x.data.id===c.id)));
+  });
+  eggData.forEach(e=>{
+    const o = roomOrigin(e.room);
+    const wx=o.x+e.x, wy=o.y+e.y;
+    const spr = scene.add.image(wx, wy, 'hot_egg').setDepth(15).setInteractive();
+    scene.tweens.add({ targets:spr, alpha:{from:0.5,to:1}, duration:1200, yoyo:true, repeat:-1 });
+    interactables.push({sprite:spr, data:e, type:'egg', wx, wy, room:e.room});
+    spr.on('pointerdown', ()=>tryInteractWith(interactables.find(x=>x.data.id===e.id)));
+  });
+  {
+    const o = roomOrigin(chestPos.room);
+    const wx=o.x+chestPos.x, wy=o.y+chestPos.y;
+    const spr = scene.add.image(wx, wy, 'hot_chest').setDepth(15).setInteractive().setScale(1.6);
+    const chestData = { name:'Скриня', text:'' };
+    interactables.push({sprite:spr, data:chestData, type:'chest', wx, wy, room:chestPos.room});
+    spr.on('pointerdown', ()=>tryInteractWith(interactables.find(x=>x.type==='chest')));
+  }
+
+  scene.input.keyboard.on('keydown-E', ()=>{
+    if(chestPanelOpen) return;
+    if(dialogOpen){ closeDialog(); return; }
+    if(nearestDoor && !nearestDoor.open) { tryOpenDoor(nearestDoor); return; }
+    if(nearestInteractable) tryInteractWith(nearestInteractable);
+  });
+  scene.input.keyboard.on('keydown-ENTER', ()=>{
+    if(chestPanelOpen) return;
+    if(dialogOpen) closeDialog();
+  });
+  scene.input.keyboard.on('keydown-ESC', ()=>{
+    if(chestPanelOpen) closeChestPanel();
+  });
+}
+
+function tryOpenDoor(entry){
+  if(dialogOpen || chestPanelOpen) return;
+  if(entry.open) return;
+  openDoor(entry.data);
+}
+
+function update(){
+  if(dialogOpen || chestPanelOpen){ player.setVelocity(0); return; }
+  const speed = 180;
+  let vx=0, vy=0;
+  if(cursors.left.isDown || wasd.left.isDown) vx=-1;
+  else if(cursors.right.isDown || wasd.right.isDown) vx=1;
+  if(cursors.up.isDown || wasd.up.isDown) vy=-1;
+  else if(cursors.down.isDown || wasd.down.isDown) vy=1;
+  const len = Math.hypot(vx,vy)||1;
+  player.setVelocity((vx/len)*speed, (vy/len)*speed);
+
+  const rk = getPlayerRoom();
+  if(rk !== currentRoomKey){
+    currentRoomKey = rk;
+    document.getElementById('room-name').textContent = getRoom(rk).name;
+  }
+
+  // hide interactables in locked rooms
+  interactables.forEach(it=>{
+    const visible = unlockedRooms.has(it.room);
+    it.sprite.setVisible(visible && !isConsumed(it));
+  });
+
+  let nearest = null, nearestDist = 65;
+  interactables.forEach(it=>{
+    if(!unlockedRooms.has(it.room) || isConsumed(it)) return;
+    const d = Phaser.Math.Distance.Between(player.x, player.y, it.wx, it.wy);
+    if(d < nearestDist){ nearestDist = d; nearest = it; }
+  });
+  nearestInteractable = nearest;
+
+  let nearDoor = null, doorDist = 55;
+  doorInteractables.forEach(d=>{
+    if(d.open) return;
+    const dd = Phaser.Math.Distance.Between(player.x, player.y, d.wx, d.wy);
+    if(dd < doorDist){ doorDist = dd; nearDoor = d; }
+  });
+  nearestDoor = nearDoor;
+
+  const prompt = document.getElementById('interact-prompt');
+  const target = nearDoor || nearest;
+  if(target){
+    const cam = this.cameras.main;
+    const tx = nearDoor ? nearDoor.wx : nearest.wx;
+    const ty = nearDoor ? nearDoor.wy : nearest.wy;
+    const screenX = (tx - cam.scrollX) * cam.zoom;
+    const screenY = (ty - cam.scrollY) * cam.zoom;
+    prompt.style.display='block';
+    prompt.style.left = screenX+'px';
+    prompt.style.top = (screenY-28)+'px';
+    prompt.textContent = nearDoor ? 'E — відчинити' : 'E';
+  } else {
+    prompt.style.display='none';
+  }
+}
+
+function isConsumed(it){
+  if(it.type==='clue') return foundClues.has(it.data.id);
+  if(it.type==='egg') return foundEggs.has(it.data.id);
+  return false;
+}
+
+function tryInteractWith(it){
+  if(!it || dialogOpen || chestPanelOpen) return;
+  if(it.type==='chest'){
+    openChestPanel();
+    return;
+  }
+  const d = it.data;
+  if(it.type==='clue'){
+    if(foundClues.has(d.id)){
+      openDialog(d.name, d.portrait, d.text);
+      return;
+    }
+    foundClues.add(d.id);
+    document.getElementById('clue-count').textContent = foundClues.size;
+    addToInventory(d, 'clue');
+    it.sprite.setVisible(false);
+    openDialog(d.name, d.portrait, `📁 Додано в портфель: «${d.label}»\n\n${d.text}`);
+  }
+  if(it.type==='egg'){
+    if(foundEggs.has(d.id)){
+      openDialog(d.name, d.portrait, d.text);
+      return;
+    }
+    foundEggs.add(d.id);
+    document.getElementById('egg-count').textContent = foundEggs.size;
+    addToInventory(d, 'egg');
+    it.sprite.setVisible(false);
+    openDialog(d.name, d.portrait, d.text);
+  }
+}
+
+function openDialog(name, portraitKey, text){
+  dialogOpen = true;
+  document.getElementById('dialog-name').textContent = name;
+  document.getElementById('dialog-text').innerHTML = text.replace(/\n/g,'<br>');
+  document.getElementById('dialog-portrait').src = `assets/portraits/${portraitKey}.png`;
+  document.getElementById('dialog').style.display='block';
+}
+function closeDialog(){
+  dialogOpen = false;
+  document.getElementById('dialog').style.display='none';
+}
+
+const config = {
+  type: Phaser.AUTO,
+  parent: 'phaser-container',
+  backgroundColor: '#050403',
+  scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
+  physics: { default:'arcade', arcade:{ gravity:{y:0}, debug:false } },
+  scene: { preload, create, update }
+};
+
+function startGame(){
+  document.getElementById('cover').style.display='none';
+  initInventory();
+  game = new Phaser.Game(config);
+}
+
+function showFinale(){
+  document.getElementById('finale').style.display='flex';
+}
 function openChest(){
   const lid = document.getElementById('lid');
   lid.style.transition = 'transform .6s ease';
@@ -413,37 +847,26 @@ function openChest(){
   document.getElementById('finale-post').style.display='block';
   launchConfetti();
 }
-
 function launchConfetti(){
   const canvas = document.getElementById('confetti');
   const ctx = canvas.getContext('2d');
   canvas.width = innerWidth; canvas.height = innerHeight;
   const colors = ['#d99a3f','#f0b558','#e9dcbd','#7a2b2b','#8a8378'];
-  let pieces = Array.from({length:140}, ()=>({
-    x: Math.random()*canvas.width,
-    y: -20 - Math.random()*canvas.height*0.5,
-    r: 4+Math.random()*5,
-    c: colors[Math.floor(Math.random()*colors.length)],
-    vy: 2+Math.random()*3,
-    vx: -1+Math.random()*2,
-    rot: Math.random()*360,
-    vr: -6+Math.random()*12
+  let pieces = Array.from({length:150}, ()=>({
+    x: Math.random()*canvas.width, y: -20 - Math.random()*canvas.height*0.5,
+    r: 4+Math.random()*5, c: colors[Math.floor(Math.random()*colors.length)],
+    vy: 2+Math.random()*3, vx: -1+Math.random()*2, rot: Math.random()*360, vr: -6+Math.random()*12
   }));
   let frames = 0;
   function tick(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     pieces.forEach(p=>{
       p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
-      ctx.save();
-      ctx.translate(p.x,p.y);
-      ctx.rotate(p.rot*Math.PI/180);
-      ctx.fillStyle=p.c;
-      ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6);
-      ctx.restore();
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.c; ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6); ctx.restore();
     });
     frames++;
-    if(frames<260) requestAnimationFrame(tick);
-    else ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(frames<260) requestAnimationFrame(tick); else ctx.clearRect(0,0,canvas.width,canvas.height);
   }
   tick();
 }
@@ -451,14 +874,6 @@ window.addEventListener('resize', ()=>{
   const c = document.getElementById('confetti');
   c.width = innerWidth; c.height = innerHeight;
 });
-
-/* ============ PHOTO SWAP (for later) ============
-  Once you have photos, drop them in /assets/ as paula.png, vika.png, andrii.png
-  and uncomment the three lines below.
-*/
-// document.getElementById('img-paula').src = 'assets/paula.jpg'; document.getElementById('img-paula').style.display='block';
-// document.getElementById('img-vika').src = 'assets/vika.jpg'; document.getElementById('img-vika').style.display='block';
-// document.getElementById('img-andrii').src = 'assets/andrii.jpg'; document.getElementById('img-andrii').style.display='block';
 </script>
 </body>
 </html>
