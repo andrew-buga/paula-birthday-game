@@ -922,25 +922,42 @@ function toggleInventory() {
 
 function checkCode() {
   const code = document.getElementById('chest-code').value;
-  // Оновлений пароль
   const correctCode = "7319313"; 
 
   if (code === correctCode) {
-    closeChestPan el();
+    closeChestPanel();
     showFinale();
   } else {
     alert("Замок не піддався. Спробуй іншу комбінацію!");
   }
 }
 
+function showFinale() {
+  document.getElementById('finale').style.display = 'flex';
+  
+  // Додаємо святковий текст
+  const msgCard = document.querySelector('#finale-post');
+  msgCard.innerHTML = `
+    <h1 style="color:var(--amber-glow); font-size: 32px;">ВІТАЄМО З ДНЕМ НАРОДЖЕННЯ!!!!! 🎉</h1>
+    <p style="color:var(--parchment); font-size: 16px;">
+      Справу розкрито! Ми дуже тебе любимо і бажаємо найяскравішого свята! 🎂
+    </p>
+  `;
+  document.getElementById('finale-post').style.display = 'block';
+  
+  // Запуск салютів
+  launchConfetti();
+  
+  // Запуск голосового повідомлення
+  const voice = new Audio('assets/voice_vika.mp3'); 
+  voice.play().catch(e => console.log("Браузер заблокував звук:", e));
+} // <--- ЦЯ ДУЖКА БУЛА ПРОПУЩЕНА!
+
 window.addEventListener('resize', ()=>{
   const c = document.getElementById('confetti');
   c.width = innerWidth; c.height = innerHeight;
 });
-window.addEventListener('resize', ()=>{
-  const c = document.getElementById('confetti');
-  c.width = innerWidth; c.height = innerHeight;
-});
+
 </script>
 </body>
 </html>
