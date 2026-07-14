@@ -451,6 +451,17 @@ function makeTextures(scene){
   g.fillStyle(0x241a14, 1); g.fillEllipse(s/2, s-37, 17, 10);
   g.generateTexture('player_tex', s, s);
   g.destroy();
+  
+  const gV = scene.add.graphics();
+gV.fillStyle(0x000000, 0.35); gV.fillEllipse(20, 34, 16, 6);
+gV.fillStyle(0xffd5b5, 1); gV.fillRect(13, 22, 14, 12);
+gV.fillStyle(0x7a2b3a, 1); gV.fillRoundedRect(13, 15, 14, 10, 3);
+gV.generateTexture('vika_tex', 40, 40); gV.destroy();
+
+const gA = scene.add.graphics();
+gA.fillStyle(0x000000, 0.35); gA.fillEllipse(20, 34, 16, 6);
+gA.fillStyle(0x222222, 1); gA.fillRect(10, 10, 20, 25);
+gA.generateTexture('andrii_tex', 40, 40); gA.destroy();
 
   [['hot_clue',0xd99a3f],['hot_egg',0xb95a8a],['hot_chest',0x5c8f6b]].forEach(([k,c])=>{
     const h = scene.add.graphics();
@@ -654,6 +665,13 @@ function create(){
   scene.physics.world.setBounds(0,0,WORLD_W,WORLD_H);
   scene.cameras.main.setBounds(0,0,WORLD_W,WORLD_H);
   scene.cameras.main.setBackgroundColor('#050403');
+  vika = scene.physics.add.sprite(300, 300, 'vika_tex');
+  vika.setDepth(21);
+  scene.physics.add.collider(vika, wallsGroup);
+
+  andrii = scene.physics.add.sprite(400, 400, 'andrii_tex');
+  andrii.setDepth(21);
+  scene.physics.add.collider(andrii, wallsGroup);
 
   // door gaps for walls
   const doorGaps = {};
@@ -776,6 +794,17 @@ function update(){
   if(rk !== currentRoomKey){
     currentRoomKey = rk;
     document.getElementById('room-name').textContent = getRoom(rk).name;
+    function moveTowards(follower, target) {
+    const speed = 150; 
+    const distance = Phaser.Math.Distance.Between(follower.x, follower.y, target.x, target.y);
+    if (distance > 100) {
+        scene.physics.moveToObject(follower, target, speed);
+    } else {
+        follower.setVelocity(0, 0);
+    }
+}
+moveTowards(vika, player);
+moveTowards(andrii, player);
   }
 
   // hide interactables in locked rooms
