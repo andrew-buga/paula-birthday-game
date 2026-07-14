@@ -452,15 +452,19 @@ function makeTextures(scene){
   g.generateTexture('player_tex', s, s);
   g.destroy();
   
-  const gV = scene.add.graphics();
-gV.fillStyle(0x000000, 0.35); gV.fillEllipse(20, 34, 16, 6);
-gV.fillStyle(0xffd5b5, 1); gV.fillRect(13, 22, 14, 12);
-gV.fillStyle(0x7a2b3a, 1); gV.fillRoundedRect(13, 15, 14, 10, 3);
+// Віка
+const gV = scene.add.graphics();
+gV.fillStyle(0x000000, 0.35); gV.fillEllipse(20, 36, 16, 6);
+gV.fillStyle(0xead8bd, 1); gV.fillRect(13, 22, 14, 12); // Тіло
+gV.fillStyle(0x7a2b3a, 1); gV.fillRoundedRect(13, 15, 14, 10, 3); // Волосся
+gV.fillStyle(0xffffff, 1); gV.fillRect(13, 30, 14, 8); // Спідничка
 gV.generateTexture('vika_tex', 40, 40); gV.destroy();
 
+// Андрій
 const gA = scene.add.graphics();
-gA.fillStyle(0x000000, 0.35); gA.fillEllipse(20, 34, 16, 6);
-gA.fillStyle(0x222222, 1); gA.fillRect(10, 10, 20, 25);
+gA.fillStyle(0x000000, 0.35); gA.fillEllipse(20, 36, 16, 6);
+gA.fillStyle(0x222222, 1); gA.fillRect(12, 18, 16, 16); // Худі
+gA.fillStyle(0xead8bd, 1); gA.fillCircle(20, 16, 6); // Голова
 gA.generateTexture('andrii_tex', 40, 40); gA.destroy();
 
   [['hot_clue',0xd99a3f],['hot_egg',0xb95a8a],['hot_chest',0x5c8f6b]].forEach(([k,c])=>{
@@ -665,13 +669,15 @@ function create(){
   scene.physics.world.setBounds(0,0,WORLD_W,WORLD_H);
   scene.cameras.main.setBounds(0,0,WORLD_W,WORLD_H);
   scene.cameras.main.setBackgroundColor('#050403');
-  vika = scene.physics.add.sprite(300, 300, 'vika_tex');
-  vika.setDepth(21);
-  scene.physics.add.collider(vika, wallsGroup);
+vika = scene.physics.add.sprite(300, 300, 'vika_tex');
+vika.setDepth(21);
+vika.body.setSize(16, 14).setOffset(12, 20); // Коригуємо розмір тіла
+scene.physics.add.collider(vika, wallsGroup);
 
-  andrii = scene.physics.add.sprite(400, 400, 'andrii_tex');
-  andrii.setDepth(21);
-  scene.physics.add.collider(andrii, wallsGroup);
+andrii = scene.physics.add.sprite(400, 400, 'andrii_tex');
+andrii.setDepth(21);
+andrii.body.setSize(16, 14).setOffset(12, 20); // Коригуємо розмір тіла
+scene.physics.add.collider(andrii, wallsGroup);
 
   // door gaps for walls
   const doorGaps = {};
