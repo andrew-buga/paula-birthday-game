@@ -104,6 +104,27 @@
   #dialog .txt p{margin:0;font-size:13px;color:var(--parchment);}
   #dialog .close-hint{margin-top:10px;text-align:right;font-size:10px;color:var(--ash);}
 
+  /* Додайте ці стилі до CSS */
+#inventory.collapsed #inv-content {
+  display: none;
+}
+
+#inventory h4 {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#inventory h4::after {
+  content: "▼";
+  font-size: 10px;
+  transition: transform 0.3s;
+}
+
+#inventory.collapsed h4::after {
+  transform: rotate(-90deg);
+}
   /* ---------- CHEST REVIEW PANEL ---------- */
   #chest-panel{
     position:absolute;inset:0;z-index:90;display:none;align-items:center;justify-content:center;
@@ -151,11 +172,7 @@
   </div>
 
 <div id="inventory">
-  <div class="inv-header">
-    <h4>📁 Портфель детектива</h4>
-    <button id="toggle-btn">Сховати/Показати</button>
-  </div>
-  
+  <h4 onclick="toggleInventory()">📁 Портфель детектива</h4>
   <div id="inv-content">
     <div class="inv-section">
       <div class="inv-label">УЛИКИ</div>
@@ -876,6 +893,15 @@ function launchConfetti(){
   }
   tick();
 }
+function toggleInventory() {
+  const inv = document.getElementById('inventory');
+  inv.classList.toggle('collapsed');
+}
+
+window.addEventListener('resize', ()=>{
+  const c = document.getElementById('confetti');
+  c.width = innerWidth; c.height = innerHeight;
+});
 window.addEventListener('resize', ()=>{
   const c = document.getElementById('confetti');
   c.width = innerWidth; c.height = innerHeight;
